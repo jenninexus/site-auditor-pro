@@ -56,6 +56,7 @@ async function startServer() {
 
   registerOAuthRoutes(app);
 
+  // API routes first (before static files to avoid conflicts)
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
   });
@@ -67,6 +68,19 @@ async function startServer() {
       createContext,
     }),
   );
+
+  // Serve static files from Expo web build
+  const path = require("path");
+  const distWebPath = path.join(__dirname, "../dist-web");
+  app.use(express.static(distWebPath));
+
+  // Fallback to index.html for client-side routing (only for non-API routes)
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api/")) {
+      return next(); // Let API routes handle their own 404s
+    }
+    res.sendFile(path.join(distWebPath, "index.html"));
+  });
 
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
