@@ -68,3 +68,39 @@
 - [x] Generate suggestion recommendations for each failing issue
 - [x] Unit tests for color suggestion algorithm (41 tests passing)
 - [x] Test color suggestions on real contrast failures
+
+
+## Brand Color Matching & Harmony (NEW)
+- [x] Extract brand color palette from audit results
+- [x] Create brand color matcher to suggest from existing palette
+- [x] Implement color harmony algorithm (complementary, analogous, triadic)
+- [x] Add brand color preview section to suggestions
+- [x] Unit tests for color harmony (47 tests passing)
+
+## Copy-to-Clipboard & Batch Export (NEW)
+- [ ] Implement copy-to-clipboard for individual color pairs
+- [ ] Add visual feedback (toast notification) on copy
+- [x] Generate CSS snippet from suggestions
+- [x] Generate design tokens JSON file
+- [ ] Create batch export download button
+- [x] Support multiple export formats (CSS, JSON, Figma tokens, SCSS, Tailwind, HTML)
+- [x] Unit tests for export functionality (37 tests passing)
+
+## GitHub Publishing & Documentation (NEW)
+- [ ] Create comprehensive README.md
+- [ ] Add LICENSE file (MIT)
+- [ ] Create CONTRIBUTING.md for contributors
+- [ ] Set up .gitignore properly
+- [ ] Create GitHub Actions CI/CD workflow
+- [ ] Deploy web version to Vercel
+- [ ] Create GitHub Releases with version tags
+- [ ] Set up GitHub Pages documentation
+
+## jenninexus.com CSS Fixes (NEW)
+- [ ] Analyze current CSS structure and issues
+- [ ] Consolidate CSS files into single bundle
+- [ ] Implement BEM naming convention
+- [ ] Fix color contrast issues
+- [ ] Optimize CSS for performance
+- [ ] Minify and bundle CSS
+- [ ] Create migration guide for CSS changes
