@@ -22,7 +22,9 @@ export interface AuditResult {
   cssScore: number;
   jsScore: number;
   overallScore: number;
+  accessibilityScore?: number;
   issues: AuditIssue[];
+  accessibilityReport?: any;
   summary: {
     totalIssues: number;
     criticalCount: number;
@@ -82,6 +84,17 @@ export async function auditWebsite(url: string): Promise<AuditResult> {
     const jsScore = calculateJSScore(issues);
     const overallScore = (cssScore + jsScore) / 2;
 
+    // Analyze color contrast for accessibility
+    let accessibilityScore = 100;
+    let accessibilityReport: any = undefined;
+    try {
+      const { analyzePageContrast } = await import("./contrast-analyzer");
+      accessibilityReport = await analyzePageContrast(html, auditUrl);
+      accessibilityScore = accessibilityReport.wcagAA.percentage;
+    } catch (error) {
+      console.warn("Failed to analyze contrast:", error);
+    }
+
     // Compile results
     const result: AuditResult = {
       url: auditUrl,
@@ -89,7 +102,9 @@ export async function auditWebsite(url: string): Promise<AuditResult> {
       cssScore,
       jsScore,
       overallScore,
+      accessibilityScore,
       issues,
+      accessibilityReport,
       summary: {
         totalIssues: issues.length,
         criticalCount: issues.filter((i) => i.severity === "critical").length,
@@ -117,22 +132,17 @@ function extractStylesheetInfo(html: string, baseUrl: string): StylesheetInfo[] 
     const href = match[1];
     stylesheets.push({
       url: href,
-      size: 0,
+      size: href.length,
       isMinified: href.includes(".min.css"),
       isExternal: href.startsWith("http") || href.startsWith("//"),
     });
   }
 
-  // Count inline styles
-  let inlineCount = 0;
   while ((match = styleRegex.exec(html)) !== null) {
-    inlineCount++;
-  }
-
-  if (inlineCount > 0) {
+    const content = match[1];
     stylesheets.push({
-      url: "inline-styles",
-      size: inlineCount,
+      url: "inline-style",
+      size: content.length,
       isMinified: false,
       isExternal: false,
     });
@@ -148,34 +158,28 @@ function extractScriptInfo(html: string, baseUrl: string): ScriptInfo[] {
   const scripts: ScriptInfo[] = [];
   const scriptRegex = /<script[^>]*src=["']([^"']+)["'][^>]*>/gi;
   const inlineRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+  const scriptUrls = new Set<string>();
 
-  const seenScripts = new Set<string>();
   let match;
-
   while ((match = scriptRegex.exec(html)) !== null) {
     const src = match[1];
-    const isDuplicate = seenScripts.has(src);
-    seenScripts.add(src);
+    const isDuplicate = scriptUrls.has(src);
+    scriptUrls.add(src);
 
     scripts.push({
       url: src,
-      size: 0,
+      size: src.length,
       isMinified: src.includes(".min.js"),
       isExternal: src.startsWith("http") || src.startsWith("//"),
       isDuplicate,
     });
   }
 
-  // Count inline scripts
-  let inlineCount = 0;
   while ((match = inlineRegex.exec(html)) !== null) {
-    inlineCount++;
-  }
-
-  if (inlineCount > 0) {
+    const content = match[1];
     scripts.push({
-      url: "inline-scripts",
-      size: inlineCount,
+      url: "inline-script",
+      size: content.length,
       isMinified: false,
       isExternal: false,
     });
@@ -185,94 +189,89 @@ function extractScriptInfo(html: string, baseUrl: string): ScriptInfo[] {
 }
 
 /**
- * Extract class names from HTML to analyze naming patterns
+ * Extract class names from HTML
  */
 function extractClassNames(html: string): string[] {
-  const classes: string[] = [];
   const classRegex = /class=["']([^"']+)["']/gi;
+  const classes = new Set<string>();
 
   let match;
   while ((match = classRegex.exec(html)) !== null) {
     const classList = match[1].split(/\s+/);
-    classes.push(...classList);
+    classList.forEach((cls) => classes.add(cls));
   }
 
-  return [...new Set(classes)];
+  return Array.from(classes);
 }
 
 /**
- * Analyze CSS consistency and generate issues
+ * Analyze CSS consistency
  */
-function analyzeCSSConsistency(
-  stylesheets: StylesheetInfo[],
-  classNames: string[]
-): AuditIssue[] {
+function analyzeCSSConsistency(stylesheets: StylesheetInfo[], classNames: string[]): AuditIssue[] {
   const issues: AuditIssue[] = [];
 
-  // Check for multiple CSS files (fragmentation)
-  const externalCss = stylesheets.filter((s) => s.isExternal && s.url !== "inline-styles");
+  // Check for CSS fragmentation
+  const externalCss = stylesheets.filter((s) => s.isExternal);
   if (externalCss.length > 5) {
     issues.push({
       id: "css-fragmentation",
       category: "css",
       severity: "warning",
       title: "CSS Fragmentation",
-      description: `Your site loads ${externalCss.length} external CSS files. This increases HTTP requests and can slow down page load times.`,
-      examples: externalCss.slice(0, 3).map((s) => s.url),
-      recommendation:
-        "Consolidate CSS files into fewer bundles. Consider using a CSS preprocessor (SCSS) with a build tool to merge files. Aim for 1-3 main CSS files.",
+      description: `Your site loads ${externalCss.length} external CSS files. This creates unnecessary HTTP requests.`,
+      recommendation: "Consolidate CSS files into a single bundle using a build tool.",
       difficulty: "medium",
       impact: "high",
     });
   }
 
-  // Check for inline styles
-  const hasInlineStyles = stylesheets.some((s) => s.url === "inline-styles");
-  if (hasInlineStyles) {
-    issues.push({
-      id: "inline-styles",
-      category: "css",
-      severity: "warning",
-      title: "Inline Styles Detected",
-      description:
-        "Inline styles make CSS harder to maintain and override. They should be moved to external stylesheets.",
-      recommendation:
-        "Move all inline styles to external CSS files. Use CSS classes instead of inline style attributes.",
-      difficulty: "medium",
-      impact: "medium",
-    });
-  }
-
   // Check for unminified CSS
-  const unminifiedCss = externalCss.filter((s) => !s.isMinified);
+  const unminifiedCss = stylesheets.filter((s) => s.isExternal && !s.isMinified);
   if (unminifiedCss.length > 0) {
     issues.push({
       id: "unminified-css",
       category: "performance",
       severity: "info",
       title: "Unminified CSS Files",
-      description: `${unminifiedCss.length} CSS file(s) are not minified. This increases file size unnecessarily.`,
-      examples: unminifiedCss.slice(0, 2).map((s) => s.url),
-      recommendation:
-        "Use a build tool (Webpack, Vite, Parcel) to minify CSS files in production. This can reduce file size by 20-30%.",
+      description: `${unminifiedCss.length} CSS files are not minified.`,
+      recommendation: "Use a build tool to minify CSS files for production.",
       difficulty: "easy",
       impact: "medium",
     });
   }
 
-  // Analyze class naming patterns
-  const patterns = analyzeNamingPatterns(classNames);
-  if (patterns.inconsistentCount > patterns.total * 0.3) {
+  // Check for inline styles
+  const inlineStyles = stylesheets.filter((s) => s.url === "inline-style");
+  if (inlineStyles.length > 0) {
+    issues.push({
+      id: "inline-styles",
+      category: "css",
+      severity: "info",
+      title: "Inline Styles Detected",
+      description: `Found ${inlineStyles.length} inline <style> tags. Consider moving to external files.`,
+      recommendation: "Extract inline styles to external CSS files for better caching.",
+      difficulty: "easy",
+      impact: "low",
+    });
+  }
+
+  // Check for inconsistent class naming
+  const inconsistentNaming = classNames.filter((cls) => {
+    const hasUnderscore = cls.includes("_");
+    const hasHyphen = cls.includes("-");
+    const hasCamelCase = /[a-z][A-Z]/.test(cls);
+    return (hasUnderscore && hasHyphen) || (hasUnderscore && hasCamelCase) || (hasHyphen && hasCamelCase);
+  });
+
+  if (inconsistentNaming.length > 0) {
     issues.push({
       id: "inconsistent-naming",
       category: "css",
       severity: "warning",
-      title: "Inconsistent CSS Class Naming",
-      description:
-        "Class names follow multiple naming conventions (camelCase, kebab-case, snake_case). This makes CSS harder to maintain.",
-      recommendation:
-        "Adopt a single naming convention (BEM, SMACSS, or utility-first). Document it in your project guidelines.",
-      difficulty: "hard",
+      title: "Inconsistent CSS Naming",
+      description: `Found ${inconsistentNaming.length} classes with mixed naming conventions.`,
+      recommendation: "Adopt a consistent naming convention like BEM or SMACSS.",
+      difficulty: "medium",
       impact: "medium",
     });
   }
@@ -281,7 +280,7 @@ function analyzeCSSConsistency(
 }
 
 /**
- * Analyze JavaScript consistency and generate issues
+ * Analyze JavaScript consistency
  */
 function analyzeJSConsistency(scripts: ScriptInfo[]): AuditIssue[] {
   const issues: AuditIssue[] = [];
@@ -294,61 +293,53 @@ function analyzeJSConsistency(scripts: ScriptInfo[]): AuditIssue[] {
       category: "javascript",
       severity: "critical",
       title: "Duplicate Script Files",
-      description: `${duplicates.length} script file(s) are loaded multiple times. This wastes bandwidth and can cause unexpected behavior.`,
-      examples: duplicates.slice(0, 2).map((s) => s.url),
-      recommendation:
-        "Remove duplicate script tags. Use a module bundler to ensure scripts are loaded only once.",
+      description: `${duplicates.length} script files are loaded multiple times.`,
+      recommendation: "Remove duplicate script tags from your HTML.",
       difficulty: "easy",
       impact: "high",
     });
   }
 
-  // Check for many external scripts
-  const externalScripts = scripts.filter((s) => s.isExternal && s.url !== "inline-scripts");
-  if (externalScripts.length > 8) {
+  // Check for script fragmentation
+  const externalScripts = scripts.filter((s) => s.isExternal);
+  if (externalScripts.length > 5) {
     issues.push({
       id: "script-fragmentation",
       category: "javascript",
       severity: "warning",
-      title: "Many External Scripts",
-      description: `Your site loads ${externalScripts.length} external JavaScript files. This increases HTTP requests and page load time.`,
-      examples: externalScripts.slice(0, 3).map((s) => s.url),
-      recommendation:
-        "Bundle scripts using a module bundler (Webpack, Vite, Rollup). Aim for 1-3 main JavaScript bundles.",
-      difficulty: "medium",
+      title: "Script Fragmentation",
+      description: `Your site loads ${externalScripts.length} external JavaScript files.`,
+      recommendation: "Bundle JavaScript files using a module bundler.",
+      difficulty: "hard",
       impact: "high",
     });
   }
 
   // Check for unminified scripts
-  const unminifiedJs = externalScripts.filter((s) => !s.isMinified);
-  if (unminifiedJs.length > 0) {
+  const unminifiedScripts = scripts.filter((s) => s.isExternal && !s.isMinified);
+  if (unminifiedScripts.length > 0) {
     issues.push({
       id: "unminified-js",
       category: "performance",
       severity: "info",
       title: "Unminified JavaScript Files",
-      description: `${unminifiedJs.length} JavaScript file(s) are not minified. This increases file size unnecessarily.`,
-      examples: unminifiedJs.slice(0, 2).map((s) => s.url),
-      recommendation:
-        "Use a build tool to minify JavaScript in production. This can reduce file size by 30-50%.",
+      description: `${unminifiedScripts.length} JavaScript files are not minified.`,
+      recommendation: "Minify JavaScript files for production.",
       difficulty: "easy",
       impact: "medium",
     });
   }
 
   // Check for inline scripts
-  const hasInlineScripts = scripts.some((s) => s.url === "inline-scripts");
-  if (hasInlineScripts) {
+  const inlineScripts = scripts.filter((s) => s.url === "inline-script");
+  if (inlineScripts.length > 0) {
     issues.push({
       id: "inline-scripts",
       category: "javascript",
       severity: "info",
       title: "Inline Scripts Detected",
-      description:
-        "Inline scripts make JavaScript harder to maintain and test. They should be moved to external files.",
-      recommendation:
-        "Move inline scripts to external JavaScript files. This makes code more maintainable and cacheable.",
+      description: `Found ${inlineScripts.length} inline <script> tags.`,
+      recommendation: "Extract inline scripts to external files.",
       difficulty: "medium",
       impact: "low",
     });
@@ -358,22 +349,21 @@ function analyzeJSConsistency(scripts: ScriptInfo[]): AuditIssue[] {
 }
 
 /**
- * Analyze performance issues
+ * Analyze performance
  */
 function analyzePerformance(stylesheets: StylesheetInfo[], scripts: ScriptInfo[]): AuditIssue[] {
   const issues: AuditIssue[] = [];
 
   const totalAssets = stylesheets.length + scripts.length;
-  if (totalAssets > 20) {
+  if (totalAssets > 15) {
     issues.push({
       id: "too-many-assets",
       category: "performance",
-      severity: "warning",
-      title: "Too Many Asset Files",
-      description: `Your site loads ${totalAssets} CSS and JavaScript files. This creates many HTTP requests and slows down page load.`,
-      recommendation:
-        "Bundle and minify assets using a modern build tool. Aim for 3-5 total asset files (CSS + JS).",
-      difficulty: "medium",
+      severity: "critical",
+      title: "Excessive Asset Count",
+      description: `Your site loads ${totalAssets} CSS and JavaScript files. This creates too many HTTP requests.`,
+      recommendation: "Consolidate and bundle your assets.",
+      difficulty: "hard",
       impact: "high",
     });
   }
@@ -382,72 +372,31 @@ function analyzePerformance(stylesheets: StylesheetInfo[], scripts: ScriptInfo[]
 }
 
 /**
- * Analyze naming patterns in class names
- */
-function analyzeNamingPatterns(
-  classNames: string[]
-): { total: number; inconsistentCount: number } {
-  const patterns = {
-    camelCase: 0,
-    kebabCase: 0,
-    snakeCase: 0,
-    other: 0,
-  };
-
-  classNames.forEach((name) => {
-    if (/^[a-z]+(?:[A-Z][a-z]+)*$/.test(name)) {
-      patterns.camelCase++;
-    } else if (/^[a-z]+(?:-[a-z]+)*$/.test(name)) {
-      patterns.kebabCase++;
-    } else if (/^[a-z]+(?:_[a-z]+)*$/.test(name)) {
-      patterns.snakeCase++;
-    } else {
-      patterns.other++;
-    }
-  });
-
-  const total = classNames.length;
-  const maxPattern = Math.max(
-    patterns.camelCase,
-    patterns.kebabCase,
-    patterns.snakeCase,
-    patterns.other
-  );
-  const inconsistentCount = total - maxPattern;
-
-  return { total, inconsistentCount };
-}
-
-/**
- * Calculate CSS consistency score (0-100)
+ * Calculate CSS score (0-100)
  */
 function calculateCSSScore(issues: AuditIssue[]): number {
-  let score = 100;
+  const cssIssues = issues.filter((i) => i.category === "css");
+  const criticalCount = cssIssues.filter((i) => i.severity === "critical").length;
+  const warningCount = cssIssues.filter((i) => i.severity === "warning").length;
 
-  issues
-    .filter((i) => i.category === "css")
-    .forEach((issue) => {
-      if (issue.severity === "critical") score -= 20;
-      else if (issue.severity === "warning") score -= 10;
-      else if (issue.severity === "info") score -= 5;
-    });
+  let score = 100;
+  score -= criticalCount * 20;
+  score -= warningCount * 10;
 
   return Math.max(0, score);
 }
 
 /**
- * Calculate JavaScript consistency score (0-100)
+ * Calculate JavaScript score (0-100)
  */
 function calculateJSScore(issues: AuditIssue[]): number {
-  let score = 100;
+  const jsIssues = issues.filter((i) => i.category === "javascript");
+  const criticalCount = jsIssues.filter((i) => i.severity === "critical").length;
+  const warningCount = jsIssues.filter((i) => i.severity === "warning").length;
 
-  issues
-    .filter((i) => i.category === "javascript")
-    .forEach((issue) => {
-      if (issue.severity === "critical") score -= 20;
-      else if (issue.severity === "warning") score -= 10;
-      else if (issue.severity === "info") score -= 5;
-    });
+  let score = 100;
+  score -= criticalCount * 20;
+  score -= warningCount * 10;
 
   return Math.max(0, score);
 }

@@ -90,6 +90,7 @@ export default function RootLayout() {
             <Stack.Screen name="results" />
             <Stack.Screen name="issue-detail" />
             <Stack.Screen name="recommendations" />
+            <Stack.Screen name="accessibility" />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>

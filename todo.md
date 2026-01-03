@@ -44,3 +44,16 @@
 - [x] Responsive design for mobile
 - [ ] Test audit on multiple websites (manual testing)
 - [ ] Performance optimization for large audits
+
+
+## Color Contrast & Accessibility Analysis (NEW)
+- [x] Build contrast analysis engine with WCAG compliance checking
+- [x] Extract text and background colors from HTML elements
+- [x] Calculate contrast ratios and determine WCAG levels (AA, AAA)
+- [x] Identify contrast violations per page
+- [x] Create accessibility report screen
+- [x] Add contrast visualization with color swatches
+- [x] Generate contrast improvement recommendations
+- [x] Integrate contrast analysis into audit engine
+- [x] Unit tests for contrast calculation (34 tests passing)
+- [x] Add accessibility report link to results screen

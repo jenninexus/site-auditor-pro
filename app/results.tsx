@@ -145,19 +145,34 @@ export default function ResultsScreen() {
             </View>
           </View>
 
-          {/* View Recommendations Button */}
-          <TouchableOpacity
-            onPress={() => {
-              const report = generateAuditReport(auditResult);
-              router.push({
-                pathname: "/recommendations",
-                params: { report: JSON.stringify(report) },
-              });
-            }}
-            className="bg-primary px-6 py-3 rounded-full active:opacity-80 flex-row items-center justify-center"
-          >
-            <Text className="text-background font-semibold text-center">View Recommendations →</Text>
-          </TouchableOpacity>
+          {/* View Reports Buttons */}
+          <View className="gap-3">
+            {auditResult.accessibilityReport && (
+              <TouchableOpacity
+                onPress={() => {
+                  router.push({
+                    pathname: "/accessibility",
+                    params: { report: JSON.stringify(auditResult.accessibilityReport) },
+                  });
+                }}
+                className="bg-primary px-6 py-3 rounded-full active:opacity-80"
+              >
+                <Text className="text-background font-semibold text-center">Color Contrast Report →</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => {
+                const report = generateAuditReport(auditResult);
+                router.push({
+                  pathname: "/recommendations",
+                  params: { report: JSON.stringify(report) },
+                });
+              }}
+              className="bg-primary px-6 py-3 rounded-full active:opacity-80"
+            >
+              <Text className="text-background font-semibold text-center">View Recommendations →</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Issues by Category */}
           <View className="gap-3">

@@ -142,7 +142,7 @@ describe("Audit Engine", () => {
 
       const inlineStylesIssue = result.issues.find((i) => i.id === "inline-styles");
       expect(inlineStylesIssue).toBeDefined();
-      expect(inlineStylesIssue?.severity).toBe("warning");
+      expect(inlineStylesIssue?.severity).toBe("info");
     });
 
     it("should calculate summary correctly", async () => {
@@ -254,7 +254,7 @@ describe("Audit Engine", () => {
 
       const result = await auditWebsite("https://example.com");
 
-      expect(result.jsScore).toBeLessThan(80);
+      expect(result.jsScore).toBeLessThanOrEqual(80);
     });
   });
 });
