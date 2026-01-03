@@ -4,11 +4,14 @@ import { useLocalSearchParams, router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { type AccessibilityReport } from "@/lib/contrast-analyzer";
+import { generateColorSuggestions } from "@/lib/color-suggester";
+import { ColorSuggestionCard } from "@/components/color-suggestion-card";
 
 export default function AccessibilityScreen() {
   const colors = useColors();
   const params = useLocalSearchParams();
   const [expandedIssues, setExpandedIssues] = useState<Set<number>>(new Set());
+  const [expandedSuggestions, setExpandedSuggestions] = useState<Set<number>>(new Set());
 
   let report: AccessibilityReport | null = null;
   try {
@@ -41,6 +44,16 @@ export default function AccessibilityScreen() {
       newExpanded.add(index);
     }
     setExpandedIssues(newExpanded);
+  };
+
+  const toggleSuggestions = (index: number) => {
+    const newExpanded = new Set(expandedSuggestions);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedSuggestions(newExpanded);
   };
 
   const getWCAGColor = (wcagAA: boolean, wcagAAA: boolean) => {
@@ -256,14 +269,34 @@ export default function AccessibilityScreen() {
                           </View>
                         </View>
 
-                        {/* Recommendation */}
-                        <View className="gap-2 pt-2 border-t border-border">
-                          <Text className="text-xs font-semibold text-foreground uppercase">
-                            Recommendation
-                          </Text>
-                          <Text className="text-sm text-muted leading-relaxed">
-                            {issue.recommendation}
-                          </Text>
+                        {/* Color Suggestions */}
+                        <View className="gap-3 pt-2 border-t border-border">
+                          <Pressable
+                            onPress={() => toggleSuggestions(index)}
+                            className="flex-row items-center justify-between active:opacity-70"
+                          >
+                            <Text className="text-xs font-semibold text-foreground uppercase">
+                              Suggested Fixes
+                            </Text>
+                            <Text className="text-lg text-muted">
+                              {expandedSuggestions.has(index) ? "−" : "+"}
+                            </Text>
+                          </Pressable>
+
+                          {expandedSuggestions.has(index) && (
+                            <View className="gap-3">
+                              {generateColorSuggestions(
+                                issue.foreground,
+                                issue.background,
+                                issue.textSize
+                              ).map((suggestion, suggestionIndex) => (
+                                <ColorSuggestionCard
+                                  key={suggestionIndex}
+                                  suggestion={suggestion}
+                                />
+                              ))}
+                            </View>
+                          )}
                         </View>
                       </View>
                     )}
