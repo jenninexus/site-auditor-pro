@@ -59,7 +59,9 @@ export async function auditWebsite(url: string): Promise<AuditResult> {
       auditUrl = "https://" + auditUrl;
     }
 
-    const response = await fetch(auditUrl);
+    // Use CORS proxy to bypass browser restrictions
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(auditUrl)}`;
+    const response = await fetch(proxyUrl);
     const html = await response.text();
 
     // Parse HTML to extract CSS and JS information
