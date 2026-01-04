@@ -1,7 +1,10 @@
 /**
- * CSS Variable Extractor
+ * Enhanced CSS Variable Extractor
  * Extracts CSS custom properties (variables) from HTML and CSS
+ * Separates light and dark mode variables
  */
+
+export type ColorMode = "light" | "dark";
 
 export interface CSSVariable {
   name: string; // e.g., "--color-primary"
@@ -10,6 +13,14 @@ export interface CSSVariable {
   selector: string; // e.g., ":root"
   type: "color" | "size" | "other";
   source: "inline" | "stylesheet"; // Where it was found
+  mode?: ColorMode; // NEW: Which mode this variable belongs to
+  darkModeValue?: string; // NEW: Alternate value for dark mode
+}
+
+export interface CSSVariablePalette {
+  light: CSSVariable[];
+  dark: CSSVariable[];
+  shared: CSSVariable[]; // Variables without mode-specific values
 }
 
 /**
@@ -35,21 +46,8 @@ function isColorValue(value: string): boolean {
 
   // Named colors (common ones)
   const namedColors = [
-    "black",
-    "white",
-    "red",
-    "green",
-    "blue",
-    "yellow",
-    "orange",
-    "purple",
-    "pink",
-    "gray",
-    "grey",
-    "brown",
-    "cyan",
-    "magenta",
-    "transparent",
+    "black", "white", "red", "green", "blue", "yellow", "orange",
+    "purple", "pink", "gray", "grey", "brown", "cyan", "magenta", "transparent",
   ];
   if (namedColors.includes(trimmed.toLowerCase())) {
     return true;
@@ -76,6 +74,98 @@ function getVariableType(value: string): CSSVariable["type"] {
 }
 
 /**
+ * Parse dark mode CSS rules
+ */
+function parseDarkModeRules(css: string): Map<string, string> {
+  const darkModeVars = new Map<string, string>();
+  
+  // Match @media (prefers-color-scheme: dark) blocks
+  const darkModeRegex = /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/gi;
+  let match;
+  
+  while ((match = darkModeRegex.exec(css)) !== null) {
+    const darkBlock = match[1];
+    
+    // Extract variable declarations from the dark mode block
+    const varRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
+    let varMatch;
+    
+    while ((varMatch = varRegex.exec(darkBlock)) !== null) {
+      const name = `--${varMatch[1]}`;
+      const value = varMatch[2].trim();
+      darkModeVars.set(name, value);
+    }
+  }
+  
+  return darkModeVars;
+}
+
+/**
+ * Parse CSS content for variables with mode detection
+ */
+function parseCSSContent(
+  css: string,
+  source: "inline" | "stylesheet"
+): CSSVariable[] {
+  const variables: CSSVariable[] = [];
+  const darkModeVars = parseDarkModeRules(css);
+  
+  // Match CSS rules with variable declarations (excluding @media blocks)
+  // Remove @media blocks first to avoid double-counting
+  const cssWithoutMedia = css.replace(/@media[^{]+\{[^}]+(?:\{[^}]*\}[^}]*)*\}/gi, '');
+  
+  const ruleRegex = /([^{]+)\{([^}]+)\}/g;
+  let ruleMatch;
+
+  while ((ruleMatch = ruleRegex.exec(cssWithoutMedia)) !== null) {
+    const selector = ruleMatch[1].trim();
+    const declarations = ruleMatch[2];
+
+    // Extract variable declarations
+    const varRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
+    let varMatch;
+
+    while ((varMatch = varRegex.exec(declarations)) !== null) {
+      const name = `--${varMatch[1]}`;
+      const value = varMatch[2].trim();
+      const darkValue = darkModeVars.get(name);
+      
+      const variable: CSSVariable = {
+        name,
+        value,
+        originalValue: value,
+        selector,
+        type: getVariableType(value),
+        source,
+      };
+      
+      // If there's a dark mode value, mark this as having both modes
+      if (darkValue) {
+        variable.darkModeValue = darkValue;
+        variable.mode = "light"; // The base value is for light mode
+      }
+      
+      variables.push(variable);
+      
+      // If there's a dark mode value, also create a dark mode entry
+      if (darkValue) {
+        variables.push({
+          name,
+          value: darkValue,
+          originalValue: darkValue,
+          selector,
+          type: getVariableType(darkValue),
+          source,
+          mode: "dark",
+        });
+      }
+    }
+  }
+
+  return variables;
+}
+
+/**
  * Extract CSS variables from inline styles
  */
 function extractFromInlineStyles(html: string): CSSVariable[] {
@@ -92,54 +182,51 @@ function extractFromInlineStyles(html: string): CSSVariable[] {
 }
 
 /**
- * Parse CSS content for variables
+ * Group variables by mode
  */
-function parseCSSContent(
-  css: string,
-  source: "inline" | "stylesheet"
-): CSSVariable[] {
-  const variables: CSSVariable[] = [];
-
-  // Match CSS rules with variable declarations
-  // Pattern: selector { --var-name: value; }
-  const ruleRegex = /([^{]+)\{([^}]+)\}/g;
-  let ruleMatch;
-
-  while ((ruleMatch = ruleRegex.exec(css)) !== null) {
-    const selector = ruleMatch[1].trim();
-    const declarations = ruleMatch[2];
-
-    // Extract variable declarations
-    const varRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
-    let varMatch;
-
-    while ((varMatch = varRegex.exec(declarations)) !== null) {
-      const name = `--${varMatch[1]}`;
-      const value = varMatch[2].trim();
-
-      variables.push({
-        name,
-        value,
-        originalValue: value,
-        selector,
-        type: getVariableType(value),
-        source,
-      });
+function groupVariablesByMode(variables: CSSVariable[]): CSSVariablePalette {
+  const light: CSSVariable[] = [];
+  const dark: CSSVariable[] = [];
+  const shared: CSSVariable[] = [];
+  
+  // Group by variable name to detect mode-specific variables
+  const byName = new Map<string, CSSVariable[]>();
+  
+  variables.forEach(v => {
+    if (!byName.has(v.name)) {
+      byName.set(v.name, []);
     }
-  }
-
-  return variables;
-}
-
-/**
- * Extract CSS variables from external stylesheets
- * Note: In browser, we can only extract from same-origin stylesheets
- */
-function extractFromStylesheets(html: string): CSSVariable[] {
-  // For now, we'll focus on inline styles
-  // External stylesheet extraction would require fetching them separately
-  // which we can add as an enhancement
-  return [];
+    byName.get(v.name)!.push(v);
+  });
+  
+  // Categorize each variable
+  byName.forEach((vars, name) => {
+    const lightVar = vars.find(v => v.mode === "light" || !v.mode);
+    const darkVar = vars.find(v => v.mode === "dark");
+    
+    if (lightVar && darkVar) {
+      // Has both modes
+      light.push(lightVar);
+      dark.push(darkVar);
+    } else if (lightVar && lightVar.darkModeValue) {
+      // Has dark mode value stored
+      light.push(lightVar);
+      dark.push({
+        ...lightVar,
+        value: lightVar.darkModeValue,
+        originalValue: lightVar.darkModeValue,
+        mode: "dark",
+      });
+    } else if (lightVar) {
+      // Only light mode (or no mode specified)
+      shared.push(lightVar);
+    } else if (darkVar) {
+      // Only dark mode
+      dark.push(darkVar);
+    }
+  });
+  
+  return { light, dark, shared };
 }
 
 /**
@@ -151,13 +238,10 @@ export function extractCSSVariables(html: string): CSSVariable[] {
   // Extract from inline styles
   variables.push(...extractFromInlineStyles(html));
 
-  // Extract from external stylesheets (future enhancement)
-  variables.push(...extractFromStylesheets(html));
-
   // Remove duplicates (keep first occurrence)
   const seen = new Set<string>();
   const unique = variables.filter((v) => {
-    const key = `${v.name}-${v.selector}`;
+    const key = `${v.name}-${v.selector}-${v.mode || 'none'}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -169,6 +253,14 @@ export function extractCSSVariables(html: string): CSSVariable[] {
     if (a.type !== "color" && b.type === "color") return 1;
     return a.name.localeCompare(b.name);
   });
+}
+
+/**
+ * Extract CSS variables separated by mode
+ */
+export function extractCSSVariablesByMode(html: string): CSSVariablePalette {
+  const allVariables = extractCSSVariables(html);
+  return groupVariablesByMode(allVariables);
 }
 
 /**
@@ -186,6 +278,17 @@ export function filterVariablesByType(
  */
 export function getColorVariables(variables: CSSVariable[]): CSSVariable[] {
   return filterVariablesByType(variables, "color");
+}
+
+/**
+ * Get color variables for a specific mode
+ */
+export function getColorVariablesByMode(
+  palette: CSSVariablePalette,
+  mode: ColorMode
+): CSSVariable[] {
+  const vars = mode === "light" ? palette.light : palette.dark;
+  return getColorVariables(vars);
 }
 
 /**
@@ -221,12 +324,70 @@ export function generateCSSFromVariables(
 }
 
 /**
+ * Generate CSS with separate light and dark mode sections
+ */
+export function generateDualModeCSSFromVariables(
+  palette: CSSVariablePalette,
+  lightModified?: Map<string, string>,
+  darkModified?: Map<string, string>
+): string {
+  let css = "/* CSS Variables - Light and Dark Mode */\n\n";
+  
+  // Light mode (default)
+  if (palette.light.length > 0) {
+    const lightVars = palette.light;
+    const grouped = new Map<string, CSSVariable[]>();
+    
+    lightVars.forEach(v => {
+      if (!grouped.has(v.selector)) {
+        grouped.set(v.selector, []);
+      }
+      grouped.get(v.selector)!.push(v);
+    });
+    
+    grouped.forEach((vars, selector) => {
+      css += `${selector} {\n`;
+      vars.forEach(v => {
+        const value = lightModified?.get(v.name) || v.value;
+        css += `  ${v.name}: ${value};\n`;
+      });
+      css += "}\n\n";
+    });
+  }
+  
+  // Dark mode
+  if (palette.dark.length > 0) {
+    css += "@media (prefers-color-scheme: dark) {\n";
+    
+    const darkVars = palette.dark;
+    const grouped = new Map<string, CSSVariable[]>();
+    
+    darkVars.forEach(v => {
+      if (!grouped.has(v.selector)) {
+        grouped.set(v.selector, []);
+      }
+      grouped.get(v.selector)!.push(v);
+    });
+    
+    grouped.forEach((vars, selector) => {
+      css += `  ${selector} {\n`;
+      vars.forEach(v => {
+        const value = darkModified?.get(v.name) || v.value;
+        css += `    ${v.name}: ${value};\n`;
+      });
+      css += `  }\n\n`;
+    });
+    
+    css += "}\n";
+  }
+  
+  return css;
+}
+
+/**
  * Convert color to hex format for consistency
  */
 export function normalizeColor(color: string): string {
-  // This is a simple implementation
-  // For production, consider using a color library like tinycolor2
-
   const trimmed = color.trim();
 
   // Already hex
@@ -263,5 +424,29 @@ export function getVariableSummary(variables: CSSVariable[]): {
     colors: variables.filter((v) => v.type === "color").length,
     sizes: variables.filter((v) => v.type === "size").length,
     other: variables.filter((v) => v.type === "other").length,
+  };
+}
+
+/**
+ * Get summary for mode-separated variables
+ */
+export function getModeSummary(palette: CSSVariablePalette): {
+  light: { total: number; colors: number };
+  dark: { total: number; colors: number };
+  shared: { total: number; colors: number };
+} {
+  return {
+    light: {
+      total: palette.light.length,
+      colors: getColorVariables(palette.light).length,
+    },
+    dark: {
+      total: palette.dark.length,
+      colors: getColorVariables(palette.dark).length,
+    },
+    shared: {
+      total: palette.shared.length,
+      colors: getColorVariables(palette.shared).length,
+    },
   };
 }

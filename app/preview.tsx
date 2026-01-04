@@ -1,19 +1,21 @@
 /**
- * Preview & Customize Page
- * Main page for live website preview with CSS variable editing
+ * Enhanced Preview & Customize Page
+ * Live website preview with separate light/dark mode CSS variable editing
  */
 
 import React, { useState, useEffect } from "react";
-import { View, Text, ActivityIndicator, Alert, Platform } from "react-native";
+import { View, Text, ActivityIndicator, Alert, Platform, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { WebsitePreview } from "../components/website-preview";
 import { CSSVariableEditor } from "../components/css-variable-editor";
 import {
-  extractCSSVariables,
-  getColorVariables,
-  generateCSSFromVariables,
+  extractCSSVariablesByMode,
+  getColorVariablesByMode,
+  generateDualModeCSSFromVariables,
   CSSVariable,
+  CSSVariablePalette,
+  ColorMode,
 } from "../lib/css-variable-extractor";
 import { AuditResult } from "../lib/audit-engine";
 
@@ -24,10 +26,10 @@ export default function PreviewPage() {
 
   const [auditResult, setAuditResult] = useState<AuditResult | null>(null);
   const [html, setHtml] = useState<string>("");
-  const [variables, setVariables] = useState<CSSVariable[]>([]);
-  const [modifiedValues, setModifiedValues] = useState<Map<string, string>>(
-    new Map()
-  );
+  const [palette, setPalette] = useState<CSSVariablePalette | null>(null);
+  const [activeMode, setActiveMode] = useState<ColorMode>("light");
+  const [lightModified, setLightModified] = useState<Map<string, string>>(new Map());
+  const [darkModified, setDarkModified] = useState<Map<string, string>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,10 +67,9 @@ export default function PreviewPage() {
       const fetchedHtml = await response.text();
       setHtml(fetchedHtml);
 
-      // Extract CSS variables
-      const extractedVars = extractCSSVariables(fetchedHtml);
-      const colorVars = getColorVariables(extractedVars);
-      setVariables(colorVars);
+      // Extract CSS variables by mode
+      const extractedPalette = extractCSSVariablesByMode(fetchedHtml);
+      setPalette(extractedPalette);
 
       setIsLoading(false);
     } catch (err) {
@@ -80,24 +81,38 @@ export default function PreviewPage() {
 
   // Handle variable change
   const handleVariableChange = (name: string, value: string) => {
-    setModifiedValues((prev) => {
-      const next = new Map(prev);
-      next.set(name, value);
-      return next;
-    });
+    if (activeMode === "light") {
+      setLightModified((prev) => {
+        const next = new Map(prev);
+        next.set(name, value);
+        return next;
+      });
+    } else {
+      setDarkModified((prev) => {
+        const next = new Map(prev);
+        next.set(name, value);
+        return next;
+      });
+    }
   };
 
   // Reset all changes
   const handleReset = () => {
     Alert.alert(
       "Reset Changes",
-      "Are you sure you want to reset all color changes?",
+      `Reset all ${activeMode} mode color changes?`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Reset",
           style: "destructive",
-          onPress: () => setModifiedValues(new Map()),
+          onPress: () => {
+            if (activeMode === "light") {
+              setLightModified(new Map());
+            } else {
+              setDarkModified(new Map());
+            }
+          },
         },
       ]
     );
@@ -105,8 +120,14 @@ export default function PreviewPage() {
 
   // Export modified CSS
   const handleExport = () => {
+    if (!palette) return;
+
     try {
-      const css = generateCSSFromVariables(variables, modifiedValues);
+      const css = generateDualModeCSSFromVariables(
+        palette,
+        lightModified,
+        darkModified
+      );
 
       // Create blob and download
       const blob = new Blob([css], { type: "text/css" });
@@ -119,19 +140,29 @@ export default function PreviewPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      Alert.alert("Success", "CSS file downloaded successfully!");
+      Alert.alert("Success", "CSS file with light and dark modes downloaded!");
     } catch (err) {
       console.error("Failed to export CSS:", err);
       Alert.alert("Error", "Failed to export CSS file");
     }
   };
 
+  // Get current variables based on active mode
+  const getCurrentVariables = (): CSSVariable[] => {
+    if (!palette) return [];
+    return getColorVariablesByMode(palette, activeMode);
+  };
+
+  const getCurrentModified = (): Map<string, string> => {
+    return activeMode === "light" ? lightModified : darkModified;
+  };
+
   // Loading state
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#0a7ea4" />
-        <Text className="mt-4 text-gray-600">Loading preview...</Text>
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text className="mt-4 text-muted">Loading preview...</Text>
       </View>
     );
   }
@@ -139,71 +170,137 @@ export default function PreviewPage() {
   // Error state
   if (error || !auditResult) {
     return (
-      <View className="flex-1 items-center justify-center bg-white p-6">
-        <Text className="text-xl font-bold text-red-600 mb-2">
+      <View className="flex-1 items-center justify-center bg-background p-6">
+        <Text className="text-xl font-bold text-destructive mb-2">
           {error || "Failed to load preview"}
         </Text>
-        <Text className="text-gray-600 text-center mb-6">
+        <Text className="text-muted text-center mb-6">
           Unable to load the preview data. Please try running the audit again.
         </Text>
-        <button
-          onClick={() => router.back()}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold"
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="bg-primary px-6 py-3 rounded-lg"
         >
-          Go Back
-        </button>
+          <Text className="text-primary-foreground font-semibold">Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   // No variables found
-  if (variables.length === 0) {
+  const hasVariables = palette && (palette.light.length > 0 || palette.dark.length > 0);
+  if (!hasVariables) {
     return (
-      <View className="flex-1 bg-white">
-        <View className="p-6 border-b border-gray-200">
-          <Text className="text-2xl font-bold text-gray-900">
+      <View className="flex-1 bg-background">
+        <View className="p-6 border-b border-border">
+          <Text className="text-2xl font-bold text-foreground">
             Preview & Customize
           </Text>
-          <Text className="text-gray-600 mt-1">{auditResult.url}</Text>
+          <Text className="text-muted mt-1">{auditResult.url}</Text>
         </View>
         <View className="flex-1 items-center justify-center p-6">
-          <Text className="text-xl font-bold text-gray-900 mb-2">
+          <Text className="text-xl font-bold text-foreground mb-2">
             No CSS Variables Found
           </Text>
-          <Text className="text-gray-600 text-center mb-6">
+          <Text className="text-muted text-center mb-6">
             This website doesn't use CSS custom properties (variables). The
             color picker feature requires websites that use modern CSS
             variables.
           </Text>
-          <button
-            onClick={() => router.back()}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold"
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="bg-primary px-6 py-3 rounded-lg"
           >
-            Back to Results
-          </button>
+            <Text className="text-primary-foreground font-semibold">
+              Back to Results
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
   }
 
+  const lightCount = palette?.light.length || 0;
+  const darkCount = palette?.dark.length || 0;
+  const sharedCount = palette?.shared.length || 0;
+
   // Main preview layout
   return (
-    <View className="flex-1 bg-gray-100">
+    <View className="flex-1 bg-background">
       {/* Header */}
-      <View className="bg-white px-6 py-4 border-b border-gray-200">
+      <View className="bg-surface px-6 py-4 border-b border-border">
         <View className="flex-row items-center justify-between">
           <View className="flex-1">
-            <Text className="text-2xl font-bold text-gray-900">
-              Preview & Customize
+            <Text className="text-2xl font-bold text-foreground">
+              Preview & Customize Colors
             </Text>
-            <Text className="text-gray-600 mt-1">{auditResult.url}</Text>
+            <Text className="text-muted mt-1">{auditResult.url}</Text>
           </View>
-          <button
-            onClick={() => router.back()}
-            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300"
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="bg-muted px-4 py-2 rounded-lg"
           >
-            Back to Results
-          </button>
+            <Text className="text-foreground font-semibold">Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Mode Tabs */}
+      <View className="bg-surface px-6 py-3 border-b border-border">
+        <View className="flex-row gap-2">
+          <TouchableOpacity
+            onPress={() => setActiveMode("light")}
+            className={`px-4 py-2 rounded-lg ${
+              activeMode === "light"
+                ? "bg-primary"
+                : "bg-muted"
+            }`}
+          >
+            <Text
+              className={`font-semibold ${
+                activeMode === "light"
+                  ? "text-primary-foreground"
+                  : "text-muted-foreground"
+              }`}
+            >
+              ☀️ Light Mode ({lightCount} vars)
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={() => setActiveMode("dark")}
+            className={`px-4 py-2 rounded-lg ${
+              activeMode === "dark"
+                ? "bg-primary"
+                : "bg-muted"
+            }`}
+          >
+            <Text
+              className={`font-semibold ${
+                activeMode === "dark"
+                  ? "text-primary-foreground"
+                  : "text-muted-foreground"
+              }`}
+            >
+              🌙 Dark Mode ({darkCount} vars)
+            </Text>
+          </TouchableOpacity>
+
+          {sharedCount > 0 && (
+            <View className="px-4 py-2 rounded-lg bg-muted">
+              <Text className="text-muted-foreground font-semibold">
+                🔗 Shared ({sharedCount} vars)
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Info banner */}
+        <View className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <Text className="text-sm text-blue-900 dark:text-blue-100">
+            💡 Editing <Text className="font-bold">{activeMode} mode</Text> variables.
+            Changes will be reflected in the preview and exported CSS.
+          </Text>
         </View>
       </View>
 
@@ -211,21 +308,26 @@ export default function PreviewPage() {
       <View className="flex-1 flex-row">
         {/* Left: Website Preview */}
         <View className="flex-1 p-4">
-          <View className="bg-white rounded-lg shadow-lg overflow-hidden h-full">
+          <View className="bg-surface rounded-lg shadow-lg overflow-hidden h-full">
+            <View className="p-3 bg-muted border-b border-border">
+              <Text className="text-sm font-semibold text-foreground">
+                Live Preview ({activeMode} mode)
+              </Text>
+            </View>
             <WebsitePreview
               html={html}
               url={auditResult.url}
-              modifiedVariables={modifiedValues}
+              modifiedVariables={getCurrentModified()}
               className="h-full"
             />
           </View>
         </View>
 
         {/* Right: Variable Editor */}
-        <View className="w-96 border-l border-gray-200">
+        <View className="w-96 border-l border-border">
           <CSSVariableEditor
-            variables={variables}
-            modifiedValues={modifiedValues}
+            variables={getCurrentVariables()}
+            modifiedValues={getCurrentModified()}
             onVariableChange={handleVariableChange}
             onReset={handleReset}
             onExport={handleExport}

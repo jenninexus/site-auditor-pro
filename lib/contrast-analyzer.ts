@@ -1,10 +1,19 @@
 /**
- * Color Contrast Analyzer
- * Analyzes color contrast ratios and WCAG compliance
+ * Enhanced Color Contrast Analyzer
+ * Analyzes color contrast ratios and WCAG compliance for both light and dark modes
+ * Provides specific color fix suggestions
  */
 
 export type WCAGLevel = "AAA" | "AA" | "Fail";
 export type TextSize = "normal" | "large";
+export type ColorMode = "light" | "dark";
+
+export interface ColorSuggestion {
+  color: string;
+  ratio: number;
+  level: WCAGLevel;
+  description: string;
+}
 
 export interface ContrastIssue {
   element: string;
@@ -15,12 +24,12 @@ export interface ContrastIssue {
   wcagAAA: boolean;
   textSize: TextSize;
   recommendation: string;
+  mode: ColorMode;
+  suggestedFixes: ColorSuggestion[];
 }
 
-export interface AccessibilityReport {
-  url: string;
-  timestamp: number;
-  totalElements: number;
+export interface ModeReport {
+  mode: ColorMode;
   contrastIssues: ContrastIssue[];
   wcagAA: {
     pass: number;
@@ -32,7 +41,27 @@ export interface AccessibilityReport {
     fail: number;
     percentage: number;
   };
+}
+
+export interface AccessibilityReport {
+  url: string;
+  timestamp: number;
+  totalElements: number;
+  lightMode: ModeReport;
+  darkMode: ModeReport;
   summary: string;
+  // Legacy fields for backward compatibility
+  contrastIssues: ContrastIssue[];
+  wcagAA: {
+    pass: number;
+    fail: number;
+    percentage: number;
+  };
+  wcagAAA: {
+    pass: number;
+    fail: number;
+    percentage: number;
+  };
 }
 
 /**
@@ -54,7 +83,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
  */
 function rgbToHex(r: number, g: number, b: number): string {
   return "#" + [r, g, b].map((x) => {
-    const hex = x.toString(16);
+    const hex = Math.round(x).toString(16);
     return hex.length === 1 ? "0" + hex : hex;
   }).join("");
 }
@@ -150,87 +179,344 @@ export function getWCAGLevel(ratio: number, textSize: TextSize = "normal"): WCAG
 }
 
 /**
- * Extract colors from HTML and analyze contrast
+ * Calculate color distance (for finding similar colors)
+ */
+function colorDistance(color1: string, color2: string): number {
+  const rgb1 = parseColor(color1);
+  const rgb2 = parseColor(color2);
+  
+  if (!rgb1 || !rgb2) return Infinity;
+  
+  return Math.sqrt(
+    Math.pow(rgb1.r - rgb2.r, 2) +
+    Math.pow(rgb1.g - rgb2.g, 2) +
+    Math.pow(rgb1.b - rgb2.b, 2)
+  );
+}
+
+/**
+ * Generate color suggestions that meet WCAG requirements
+ */
+function generateColorSuggestions(
+  foreground: string,
+  background: string,
+  textSize: TextSize
+): ColorSuggestion[] {
+  const targetAA = textSize === "large" ? 3 : 4.5;
+  const targetAAA = textSize === "large" ? 4.5 : 7;
+  
+  const suggestions: ColorSuggestion[] = [];
+  const fgRgb = parseColor(foreground);
+  const bgRgb = parseColor(background);
+  
+  if (!fgRgb || !bgRgb) return suggestions;
+  
+  // Strategy 1: Darken foreground
+  for (let factor = 0.7; factor >= 0.1; factor -= 0.1) {
+    const adjusted = {
+      r: fgRgb.r * factor,
+      g: fgRgb.g * factor,
+      b: fgRgb.b * factor,
+    };
+    const color = rgbToHex(adjusted.r, adjusted.g, adjusted.b);
+    const ratio = calculateContrastRatio(color, background);
+    
+    if (ratio && ratio >= targetAA) {
+      const level = getWCAGLevel(ratio, textSize);
+      suggestions.push({
+        color,
+        ratio: Math.round(ratio * 100) / 100,
+        level,
+        description: `Darken text to ${color} (${level} - ${ratio.toFixed(2)}:1)`,
+      });
+      
+      if (suggestions.length >= 2) break;
+    }
+  }
+  
+  // Strategy 2: Lighten foreground
+  for (let factor = 1.3; factor <= 2.5; factor += 0.2) {
+    const adjusted = {
+      r: Math.min(255, fgRgb.r * factor),
+      g: Math.min(255, fgRgb.g * factor),
+      b: Math.min(255, fgRgb.b * factor),
+    };
+    const color = rgbToHex(adjusted.r, adjusted.g, adjusted.b);
+    const ratio = calculateContrastRatio(color, background);
+    
+    if (ratio && ratio >= targetAA) {
+      const level = getWCAGLevel(ratio, textSize);
+      suggestions.push({
+        color,
+        ratio: Math.round(ratio * 100) / 100,
+        level,
+        description: `Lighten text to ${color} (${level} - ${ratio.toFixed(2)}:1)`,
+      });
+      
+      if (suggestions.length >= 4) break;
+    }
+  }
+  
+  // Strategy 3: Adjust background
+  for (let factor = 0.7; factor >= 0.1; factor -= 0.1) {
+    const adjusted = {
+      r: bgRgb.r * factor,
+      g: bgRgb.g * factor,
+      b: bgRgb.b * factor,
+    };
+    const color = rgbToHex(adjusted.r, adjusted.g, adjusted.b);
+    const ratio = calculateContrastRatio(foreground, color);
+    
+    if (ratio && ratio >= targetAA) {
+      const level = getWCAGLevel(ratio, textSize);
+      suggestions.push({
+        color,
+        ratio: Math.round(ratio * 100) / 100,
+        level,
+        description: `Change background to ${color} (${level} - ${ratio.toFixed(2)}:1)`,
+      });
+      
+      if (suggestions.length >= 6) break;
+    }
+  }
+  
+  // Sort by closest to original color and remove duplicates
+  const unique = suggestions.filter((s, i, arr) => 
+    arr.findIndex(t => t.color === s.color) === i
+  );
+  
+  return unique
+    .sort((a, b) => colorDistance(foreground, a.color) - colorDistance(foreground, b.color))
+    .slice(0, 3);
+}
+
+/**
+ * Extract dark mode colors from CSS
+ */
+function extractDarkModeColors(html: string): Array<{fg: string; bg: string; element: string}> {
+  const darkModeColors: Array<{fg: string; bg: string; element: string}> = [];
+  
+  // Look for @media (prefers-color-scheme: dark) rules
+  const darkModeRegex = /@media\s*\(prefers-color-scheme:\s*dark\)\s*{([^}]+)}/gi;
+  let match;
+  
+  while ((match = darkModeRegex.exec(html)) !== null) {
+    const cssBlock = match[1];
+    
+    // Extract color and background-color from the block
+    const colorMatch = /color:\s*([^;]+);/i.exec(cssBlock);
+    const bgMatch = /background(?:-color)?:\s*([^;]+);/i.exec(cssBlock);
+    
+    if (colorMatch || bgMatch) {
+      darkModeColors.push({
+        fg: colorMatch ? colorMatch[1].trim() : "#ffffff",
+        bg: bgMatch ? bgMatch[1].trim() : "#000000",
+        element: "dark-mode-style",
+      });
+    }
+  }
+  
+  // Also check for common dark mode patterns
+  const commonDarkPatterns = [
+    { fg: "#ffffff", bg: "#000000", element: "dark-body" },
+    { fg: "#e0e0e0", bg: "#121212", element: "dark-text" },
+    { fg: "#b0b0b0", bg: "#1e1e1e", element: "dark-muted" },
+    { fg: "#cccccc", bg: "#2d2d2d", element: "dark-secondary" },
+  ];
+  
+  darkModeColors.push(...commonDarkPatterns);
+  
+  return darkModeColors;
+}
+
+/**
+ * Analyze contrast for a specific mode
+ */
+function analyzeModeContrast(
+  html: string,
+  mode: ColorMode
+): ContrastIssue[] {
+  const issues: ContrastIssue[] = [];
+  
+  // Get colors based on mode
+  const colorPairs = mode === "light" 
+    ? extractLightModeColors(html)
+    : extractDarkModeColors(html);
+  
+  colorPairs.forEach(({ fg, bg, element }) => {
+    const ratio = calculateContrastRatio(fg, bg);
+    if (!ratio) return;
+    
+    const textSize: TextSize = element.includes("h") ? "large" : "normal";
+    const targetAA = textSize === "large" ? 3 : 4.5;
+    const targetAAA = textSize === "large" ? 4.5 : 7;
+    
+    const wcagAA = ratio >= targetAA;
+    const wcagAAA = ratio >= targetAAA;
+    
+    // Only report issues that don't meet WCAG AA
+    if (!wcagAA) {
+      const suggestedFixes = generateColorSuggestions(fg, bg, textSize);
+      const recommendation = generateContrastRecommendation(ratio, textSize, fg, bg, suggestedFixes);
+      
+      issues.push({
+        element,
+        foreground: fg,
+        background: bg,
+        ratio: Math.round(ratio * 100) / 100,
+        wcagAA,
+        wcagAAA,
+        textSize,
+        recommendation,
+        mode,
+        suggestedFixes,
+      });
+    }
+  });
+  
+  return issues;
+}
+
+/**
+ * Extract light mode colors from HTML
+ */
+function extractLightModeColors(html: string): Array<{fg: string; bg: string; element: string}> {
+  const lightModeColors: Array<{fg: string; bg: string; element: string}> = [];
+  
+  // Parse inline styles
+  const textElementRegex = /<(p|h[1-6]|a|button|span|div|li)[^>]*style="([^"]*)"[^>]*>([^<]*)<\/\1>/gi;
+  const styleRegex = /color:\s*([^;]+);|background(?:-color)?:\s*([^;]+);/gi;
+  
+  let match;
+  while ((match = textElementRegex.exec(html)) !== null) {
+    const elementTag = match[1];
+    const styleAttr = match[2];
+    const content = match[3];
+    
+    if (!content.trim()) continue;
+    
+    let foreground = "#000000";
+    let background = "#ffffff";
+    
+    let styleMatch;
+    while ((styleMatch = styleRegex.exec(styleAttr)) !== null) {
+      if (styleMatch[1]) foreground = styleMatch[1].trim();
+      if (styleMatch[2]) background = styleMatch[2].trim();
+    }
+    
+    lightModeColors.push({
+      fg: foreground,
+      bg: background,
+      element: `<${elementTag}>`,
+    });
+  }
+  
+  // Add common light mode patterns
+  const commonLightPatterns = [
+    { fg: "#000000", bg: "#ffffff", element: "light-body" },
+    { fg: "#333333", bg: "#ffffff", element: "light-text" },
+    { fg: "#666666", bg: "#f5f5f5", element: "light-muted" },
+    { fg: "#444444", bg: "#fafafa", element: "light-secondary" },
+  ];
+  
+  lightModeColors.push(...commonLightPatterns);
+  
+  return lightModeColors;
+}
+
+/**
+ * Generate recommendation with suggested fixes
+ */
+function generateContrastRecommendation(
+  currentRatio: number,
+  textSize: TextSize,
+  foreground: string,
+  background: string,
+  suggestedFixes: ColorSuggestion[]
+): string {
+  const targetAA = textSize === "large" ? 3 : 4.5;
+  const targetAAA = textSize === "large" ? 4.5 : 7;
+  
+  let recommendation = `Current contrast ratio is ${currentRatio.toFixed(2)}:1. `;
+  
+  if (currentRatio < targetAA) {
+    recommendation += `Needs ${targetAA}:1 for WCAG AA. `;
+  } else if (currentRatio < targetAAA) {
+    recommendation += `Needs ${targetAAA}:1 for WCAG AAA. `;
+  }
+  
+  if (suggestedFixes.length > 0) {
+    recommendation += `Try: ${suggestedFixes[0].description}`;
+  } else {
+    recommendation += `Increase contrast between text and background.`;
+  }
+  
+  return recommendation;
+}
+
+/**
+ * Generate mode report
+ */
+function generateModeReport(issues: ContrastIssue[], mode: ColorMode): ModeReport {
+  const wcagAAPass = issues.filter((i) => i.wcagAA).length;
+  const wcagAAAPass = issues.filter((i) => i.wcagAAA).length;
+  
+  return {
+    mode,
+    contrastIssues: issues,
+    wcagAA: {
+      pass: wcagAAPass,
+      fail: issues.length - wcagAAPass,
+      percentage: issues.length > 0 ? Math.round((wcagAAPass / issues.length) * 100) : 100,
+    },
+    wcagAAA: {
+      pass: wcagAAAPass,
+      fail: issues.length - wcagAAAPass,
+      percentage: issues.length > 0 ? Math.round((wcagAAAPass / issues.length) * 100) : 100,
+    },
+  };
+}
+
+/**
+ * Analyze page contrast for both light and dark modes
  */
 export async function analyzePageContrast(html: string, url: string): Promise<AccessibilityReport> {
-  const issues: ContrastIssue[] = [];
-  let totalElements = 0;
-
   try {
-    // Parse HTML to find text elements
-    const textElementRegex = /<(p|h[1-6]|a|button|span|div|li)[^>]*style="([^"]*)"[^>]*>([^<]*)<\/\1>/gi;
-    const styleRegex = /color:\s*([^;]+);|background(?:-color)?:\s*([^;]+);/gi;
-
-    let match;
-    while ((match = textElementRegex.exec(html)) !== null) {
-      totalElements++;
-      const elementTag = match[1];
-      const styleAttr = match[2];
-      const content = match[3];
-
-      if (!content.trim()) continue;
-
-      let foreground = "#000000";
-      let background = "#ffffff";
-
-      let styleMatch;
-      while ((styleMatch = styleRegex.exec(styleAttr)) !== null) {
-        if (styleMatch[1]) {
-          foreground = styleMatch[1].trim();
-        }
-        if (styleMatch[2]) {
-          background = styleMatch[2].trim();
-        }
-      }
-
-      const ratio = calculateContrastRatio(foreground, background);
-      if (ratio === null) continue;
-
-      const textSize: TextSize = ["h1", "h2", "h3"].includes(elementTag) ? "large" : "normal";
-      const wcagLevel = getWCAGLevel(ratio, textSize);
-
-      if (wcagLevel === "Fail") {
-        const recommendation = generateContrastRecommendation(ratio, textSize, foreground, background);
-
-        issues.push({
-          element: `<${elementTag}>`,
-          foreground,
-          background,
-          ratio: Math.round(ratio * 100) / 100,
-          wcagAA: ratio >= (textSize === "large" ? 3 : 4.5),
-          wcagAAA: ratio >= (textSize === "large" ? 4.5 : 7),
-          textSize,
-          recommendation,
-        });
-      }
-    }
-
-    // Also check computed styles from the page
-    const computedIssues = extractComputedContrasts(html);
-    issues.push(...computedIssues);
-
-    // Calculate statistics
-    const wcagAAPass = issues.filter((i) => i.wcagAA).length;
-    const wcagAAAPass = issues.filter((i) => i.wcagAAA).length;
-
+    // Analyze both modes
+    const lightIssues = analyzeModeContrast(html, "light");
+    const darkIssues = analyzeModeContrast(html, "dark");
+    
+    const lightReport = generateModeReport(lightIssues, "light");
+    const darkReport = generateModeReport(darkIssues, "dark");
+    
+    // Combined statistics for legacy compatibility
+    const allIssues = [...lightIssues, ...darkIssues];
+    const wcagAAPass = allIssues.filter((i) => i.wcagAA).length;
+    const wcagAAAPass = allIssues.filter((i) => i.wcagAAA).length;
+    
+    const summary = generateDualModeSummary(lightReport, darkReport);
+    
     const report: AccessibilityReport = {
       url,
       timestamp: Date.now(),
-      totalElements: Math.max(totalElements, issues.length),
-      contrastIssues: issues,
+      totalElements: Math.max(lightIssues.length, darkIssues.length),
+      lightMode: lightReport,
+      darkMode: darkReport,
+      summary,
+      // Legacy fields
+      contrastIssues: allIssues,
       wcagAA: {
         pass: wcagAAPass,
-        fail: issues.length - wcagAAPass,
-        percentage: issues.length > 0 ? Math.round((wcagAAPass / issues.length) * 100) : 100,
+        fail: allIssues.length - wcagAAPass,
+        percentage: allIssues.length > 0 ? Math.round((wcagAAPass / allIssues.length) * 100) : 100,
       },
       wcagAAA: {
         pass: wcagAAAPass,
-        fail: issues.length - wcagAAAPass,
-        percentage: issues.length > 0 ? Math.round((wcagAAAPass / issues.length) * 100) : 100,
+        fail: allIssues.length - wcagAAAPass,
+        percentage: allIssues.length > 0 ? Math.round((wcagAAAPass / allIssues.length) * 100) : 100,
       },
-      summary: generateAccessibilitySummary(issues, wcagAAPass, wcagAAAPass),
     };
-
+    
     return report;
   } catch (error) {
     throw new Error(`Failed to analyze page contrast: ${error}`);
@@ -238,123 +524,49 @@ export async function analyzePageContrast(html: string, url: string): Promise<Ac
 }
 
 /**
- * Extract contrast issues from computed styles in HTML
+ * Generate summary for dual-mode analysis
  */
-function extractComputedContrasts(html: string): ContrastIssue[] {
-  const issues: ContrastIssue[] = [];
-
-  // Look for common color patterns in CSS
-  const colorPatterns = [
-    { fg: "#11181C", bg: "#ffffff", level: "normal" }, // Dark text on white
-    { fg: "#ECEDEE", bg: "#151718", level: "normal" }, // Light text on dark
-    { fg: "#687076", bg: "#ffffff", level: "normal" }, // Muted text on white
-    { fg: "#9BA1A6", bg: "#151718", level: "normal" }, // Muted text on dark
-  ];
-
-  colorPatterns.forEach((pattern) => {
-    const ratio = calculateContrastRatio(pattern.fg, pattern.bg);
-    if (ratio && ratio < 4.5) {
-      issues.push({
-        element: "computed-style",
-        foreground: pattern.fg,
-        background: pattern.bg,
-        ratio: Math.round(ratio * 100) / 100,
-        wcagAA: ratio >= 4.5,
-        wcagAAA: ratio >= 7,
-        textSize: pattern.level as TextSize,
-        recommendation: generateContrastRecommendation(ratio, pattern.level as TextSize, pattern.fg, pattern.bg),
-      });
-    }
-  });
-
-  return issues;
-}
-
-/**
- * Generate recommendation for improving contrast
- */
-function generateContrastRecommendation(
-  currentRatio: number,
-  textSize: TextSize,
-  foreground: string,
-  background: string
-): string {
-  const targetAA = textSize === "large" ? 3 : 4.5;
-  const targetAAA = textSize === "large" ? 4.5 : 7;
-
-  let recommendation = `Current contrast ratio is ${currentRatio.toFixed(2)}:1. `;
-
-  if (currentRatio < targetAA) {
-    recommendation += `To meet WCAG AA (${targetAA}:1), `;
-    recommendation += "make the text darker or the background lighter. ";
-  } else if (currentRatio < targetAAA) {
-    recommendation += `To meet WCAG AAA (${targetAAA}:1), `;
-    recommendation += "increase the contrast further. ";
-  }
-
-  recommendation += `Try using a darker shade of text or adjusting the background color.`;
-
-  return recommendation;
-}
-
-/**
- * Generate accessibility summary
- */
-function generateAccessibilitySummary(
-  issues: ContrastIssue[],
-  wcagAAPass: number,
-  wcagAAAPass: number
-): string {
-  if (issues.length === 0) {
-    return "Excellent! All text elements meet WCAG AAA contrast requirements.";
-  }
-
-  const wcagAAPercentage = Math.round((wcagAAPass / issues.length) * 100);
-  const wcagAAAPercentage = Math.round((wcagAAAPass / issues.length) * 100);
-
-  let summary = `Found ${issues.length} contrast issues. `;
-  summary += `${wcagAAPercentage}% meet WCAG AA, ${wcagAAAPercentage}% meet WCAG AAA. `;
-
-  if (wcagAAPercentage < 50) {
-    summary += "Significant improvements needed for accessibility.";
-  } else if (wcagAAPercentage < 80) {
-    summary += "Several contrast issues should be addressed.";
+function generateDualModeSummary(lightReport: ModeReport, darkReport: ModeReport): string {
+  const lightAA = lightReport.wcagAA.percentage;
+  const darkAA = darkReport.wcagAA.percentage;
+  
+  let summary = "";
+  
+  if (lightAA >= 90 && darkAA >= 90) {
+    summary = "Excellent! Both light and dark modes meet WCAG AA standards.";
+  } else if (lightAA >= 80 && darkAA >= 80) {
+    summary = "Good accessibility in both modes, with minor improvements needed.";
+  } else if (lightAA >= 80 || darkAA >= 80) {
+    const betterMode = lightAA > darkAA ? "light" : "dark";
+    const worseMode = lightAA > darkAA ? "dark" : "light";
+    summary = `${betterMode} mode has good accessibility, but ${worseMode} mode needs improvement.`;
   } else {
-    summary += "Most elements meet standards; minor improvements recommended.";
+    summary = "Both modes need significant accessibility improvements.";
   }
-
+  
+  summary += ` Light: ${lightAA}% AA, Dark: ${darkAA}% AA.`;
+  
   return summary;
 }
 
 /**
- * Suggest improved colors for contrast
+ * Suggest improved colors for contrast (legacy function)
  */
 export function suggestImprovedColors(
   foreground: string,
   background: string,
   targetRatio: number = 7
 ): { foreground: string; background: string; ratio: number } {
-  const fgRgb = parseColor(foreground);
-  const bgRgb = parseColor(background);
-
-  if (!fgRgb || !bgRgb) {
-    return { foreground, background, ratio: 0 };
+  const suggestions = generateColorSuggestions(foreground, background, "normal");
+  
+  if (suggestions.length > 0) {
+    const best = suggestions.find(s => s.ratio >= targetRatio) || suggestions[0];
+    return {
+      foreground: best.color,
+      background,
+      ratio: best.ratio,
+    };
   }
-
-  // Try darkening the foreground
-  let adjustedFg = { ...fgRgb };
-  let ratio = calculateContrastRatio(rgbToHex(adjustedFg.r, adjustedFg.g, adjustedFg.b), background) || 0;
-
-  while (ratio < targetRatio && (adjustedFg.r > 0 || adjustedFg.g > 0 || adjustedFg.b > 0)) {
-    adjustedFg.r = Math.max(0, adjustedFg.r - 20);
-    adjustedFg.g = Math.max(0, adjustedFg.g - 20);
-    adjustedFg.b = Math.max(0, adjustedFg.b - 20);
-    ratio = calculateContrastRatio(rgbToHex(adjustedFg.r, adjustedFg.g, adjustedFg.b), background) || 0;
-  }
-
-  return {
-    foreground: rgbToHex(adjustedFg.r, adjustedFg.g, adjustedFg.b),
-    background,
-    ratio: Math.round(ratio * 100) / 100,
-  };
+  
+  return { foreground, background, ratio: 0 };
 }
