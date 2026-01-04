@@ -5,42 +5,16 @@
 Analyze any website and get actionable recommendations to improve code quality, accessibility, and performance. Built with React Native, TypeScript, and Expo.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests Passing](https://img.shields.io/badge/tests-191%20passing-brightgreen)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)]()
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed-Vercel-black)]()
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Live Demo
 
-### Web Browser (Recommended - No Installation)
+**Try it now:** [https://site-auditor-pro-nine.vercel.app](https://site-auditor-pro-nine.vercel.app)
 
-Visit: **[site-auditor-pro.vercel.app](https://site-auditor-pro.vercel.app)** ← Just click and use!
-
-### Local Development
-
-```bash
-# Clone repository
-git clone https://github.com/yourusername/site-auditor-pro.git
-cd site-auditor-pro
-
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-
-# Open browser to http://localhost:8081
-```
-
-### Mobile Testing (Expo Go)
-
-```bash
-# Start dev server
-pnpm dev
-
-# Scan QR code with Expo Go app (iOS/Android)
-# App loads on your phone instantly
-```
+No installation required! Just open the link and start auditing websites instantly.
 
 ---
 
@@ -71,6 +45,13 @@ pnpm dev
 - **Load Time Estimates** — Predicts performance improvements
 - **Caching Recommendations** — Suggests cache strategies
 
+### 🎨 Live Preview & Color Customization (New!)
+- **Website Preview** — See the analyzed website in real-time
+- **CSS Variable Editor** — Extract and edit CSS custom properties
+- **Color Picker** — Interactive RGB sliders for precise color control
+- **Real-time Updates** — See changes instantly in the preview
+- **Export Modified CSS** — Download your customized styles
+
 ### 📥 Export & Integration
 - **CSS Snippets** — Copy-paste ready fixes
 - **Design Tokens** — JSON for design systems
@@ -81,56 +62,96 @@ pnpm dev
 
 ---
 
-## 📱 Deployment Options
+## 🚀 Quick Start
 
-### Option 1: Web Browser (Easiest)
-```bash
-# Deploy to Vercel (free, 1-click)
-pnpm build
-# Push to GitHub, connect to Vercel
-# Your app is live at vercel.app URL
-```
+### Web Browser (Recommended)
 
-### Option 2: GitHub Pages
+Visit: **[https://site-auditor-pro-nine.vercel.app](https://site-auditor-pro-nine.vercel.app)**
+
+### Local Development
+
 ```bash
-# Deploy static web version
+# Clone repository
+git clone https://github.com/jenninexus/site-auditor-pro.git
+cd site-auditor-pro
+
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm start
+# Press 'w' for web, or scan QR code for mobile
+
+# Build for web
 pnpm build:web
-git add dist/
-git commit -m "Deploy to GitHub Pages"
-git push origin main
-# Enable GitHub Pages in repo settings
-```
-
-### Option 3: Docker
-```bash
-# Build and run with Docker
-docker build -t site-auditor-pro .
-docker run -p 8081:8081 site-auditor-pro
-```
-
-### Option 4: Mobile Apps (iOS/Android)
-```bash
-# Build with Expo EAS
-eas build --platform ios
-eas build --platform android
-# Distribute via App Store / Google Play
 ```
 
 ---
 
-## 🛠️ Architecture
+## 📖 Usage Guide
 
-### Tech Stack
+### 1. Audit a Website
+
+1. **Enter URL** — Type or paste any website URL (e.g., `example.com`)
+2. **Click "Audit Website"** — Analysis starts immediately
+3. **Wait for Results** — Typically completes in 3-5 seconds
+4. **Review Findings** — See scores and categorized issues
+
+### 2. View Results
+
+- **Overall Score** — Combined CSS, JS, and performance score
+- **CSS Score** — Consistency and optimization rating
+- **JS Score** — Quality and best practices rating
+- **Issues List** — Categorized by severity (Critical, Warning, Info)
+
+### 3. Check Color Contrast
+
+1. **Click "Color Contrast Report"**
+2. **View WCAG Compliance** — See AA/AAA pass/fail status
+3. **Get Suggestions** — Automatic color fix recommendations
+4. **Copy Colors** — Use suggested colors in your project
+
+### 4. Customize Colors (New!)
+
+1. **Click "🎨 Preview & Customize Colors"**
+2. **View Live Preview** — See the website in split-view
+3. **Edit CSS Variables** — Click color swatches to open picker
+4. **Adjust Colors** — Use RGB sliders or hex input
+5. **See Changes Live** — Preview updates in real-time
+6. **Download CSS** — Export your modified styles
+
+### 5. View Recommendations
+
+1. **Click "View Recommendations"**
+2. **Read Implementation Guide** — Step-by-step fixes
+3. **Check Difficulty** — Easy, Medium, or Hard ratings
+4. **Assess Impact** — High, Medium, or Low impact
+
+### 6. Export Results
+
+- **CSS Snippets** — Ready-to-use code
+- **JSON Tokens** — For design systems
+- **Tailwind Config** — Pre-configured classes
+- **HTML Report** — Shareable document
+
+---
+
+## 🛠️ Tech Stack
+
 - **Frontend**: React Native 0.81, React 19, Expo SDK 54
 - **Styling**: NativeWind (Tailwind CSS for React Native)
 - **Language**: TypeScript 5.9
+- **Routing**: Expo Router (file-based routing)
 - **State**: React Context + AsyncStorage
-- **Testing**: Vitest (191 tests)
-- **Build**: Metro Bundler, Expo Router
+- **Deployment**: Vercel (auto-deploy from GitHub)
+- **Build**: Metro Bundler, Expo Web
 
-### Project Structure
+---
+
+## 📁 Project Structure
+
 ```
-site-auditor-app/
+site-auditor-pro/
 ├── app/                          # Expo Router screens
 │   ├── (tabs)/
 │   │   ├── index.tsx            # Home screen
@@ -138,118 +159,121 @@ site-auditor-app/
 │   ├── results.tsx              # Audit results
 │   ├── accessibility.tsx        # Color contrast report
 │   ├── recommendations.tsx      # Implementation guide
+│   ├── preview.tsx              # Live preview & color editor (NEW!)
 │   └── _layout.tsx              # Root layout
 ├── components/                   # Reusable components
 │   ├── screen-container.tsx     # SafeArea wrapper
-│   ├── color-suggestion-card.tsx # Suggestion UI
+│   ├── website-preview.tsx      # Iframe preview (NEW!)
+│   ├── css-variable-editor.tsx  # Color picker UI (NEW!)
 │   └── ui/
-│       └── icon-symbol.tsx      # Icon mapping
 ├── lib/                          # Core logic
 │   ├── audit-engine.ts          # Main audit orchestrator
 │   ├── contrast-analyzer.ts     # WCAG compliance
 │   ├── color-suggester.ts       # Color fix suggestions
-│   ├── color-harmony.ts         # Color theory
+│   ├── css-variable-extractor.ts # CSS variable parser (NEW!)
 │   ├── report-generator.ts      # Report formatting
-│   ├── batch-export.ts          # Export generators
-│   └── *.test.ts                # 191 unit tests
+│   └── batch-export.ts          # Export generators
 ├── hooks/                        # React hooks
 ├── constants/                    # App constants
-├── assets/                       # Images, icons
-├── app.config.ts                # Expo configuration
-├── tailwind.config.js           # Tailwind theme
+├── theme.config.js              # Theme colors (dark mode default)
+├── vercel.json                  # Deployment config
 └── package.json
 ```
 
 ---
 
-## 🧪 Testing
+## 🎨 Dark Mode
 
-```bash
-# Run all tests
-pnpm test
+The app now defaults to **dark mode** with a beautiful, modern theme:
 
-# Run specific test file
-pnpm test lib/audit-engine.test.ts
+- **Rich dark backgrounds** — Easy on the eyes
+- **Vibrant accent colors** — Better contrast and readability
+- **Smooth transitions** — Seamless theme switching
+- **System preference** — Respects OS dark mode setting
 
-# Watch mode
-pnpm test --watch
+To toggle themes programmatically:
+```typescript
+import { useThemeContext } from '@/lib/theme-provider';
 
-# Coverage report
-pnpm test --coverage
+const { setColorScheme } = useThemeContext();
+setColorScheme('dark'); // or 'light'
 ```
-
-**Test Coverage:**
-- Audit Engine: 11 tests
-- Contrast Analyzer: 34 tests
-- Color Suggester: 41 tests
-- Color Harmony: 47 tests
-- Report Generator: 21 tests
-- Batch Export: 37 tests
-- **Total: 191 passing tests**
 
 ---
 
-## 📖 Usage Guide
+## 🚀 Deployment
 
-### Audit a Website
+### Vercel (Current Setup)
 
-1. **Enter URL** — Type or paste website URL
-2. **Start Audit** — Click "Audit Website" button
-3. **Wait for Results** — Analysis completes in 5-10 seconds
-4. **Review Findings** — See categorized issues with severity
+This project is configured for automatic deployment to Vercel:
 
-### Fix Color Contrast Issues
+1. **Push to GitHub** — Any commit to `main` branch
+2. **Auto-Deploy** — Vercel detects changes and builds
+3. **Live in 2-3 minutes** — New version goes live automatically
 
-1. **Go to Accessibility Report** — Click "Color Contrast Report"
-2. **Expand Issue** — View original vs suggested colors
-3. **Review Suggestions** — See multiple fix options
-4. **Copy Colors** — Use copy button or export as CSS
+**Current URL:** https://site-auditor-pro-nine.vercel.app
 
-### Export Fixes
+### Custom Domain (Optional)
 
-1. **Select Format** — CSS, JSON, SCSS, Tailwind, Figma, or HTML
-2. **Download File** — Get ready-to-use code
-3. **Integrate** — Apply to your project immediately
+To use a custom domain:
+
+1. Go to Vercel dashboard
+2. Select your project
+3. Go to Settings → Domains
+4. Add your custom domain (e.g., `siteauditor.com`)
+5. Follow DNS configuration instructions
+
+### Build Configuration
+
+```json
+{
+  "buildCommand": "pnpm install && pnpm build:web",
+  "outputDirectory": "dist-web",
+  "framework": "other"
+}
+```
 
 ---
 
 ## 🔧 Configuration
 
-### Environment Variables
-
-Create `.env.local` (optional):
-
-```env
-# API endpoint (for future backend features)
-EXPO_PUBLIC_API_URL=http://localhost:3000
-
-# Enable debug logging
-EXPO_PUBLIC_DEBUG=false
-```
-
 ### Theme Customization
 
-Edit `theme.config.js`:
+Edit `theme.config.js` to customize colors:
 
 ```javascript
 const themeColors = {
-  primary: '#0a7ea4',      // Main brand color
-  secondary: '#687076',    // Secondary color
-  accent: '#10B981',       // Accent color
+  primary: { light: '#0a7ea4', dark: '#3b82f6' },
+  background: { light: '#ffffff', dark: '#0f1419' },
+  surface: { light: '#f5f5f5', dark: '#1a1f26' },
   // ... more colors
 };
+```
+
+### Environment Variables
+
+No environment variables required for basic usage. The app runs entirely client-side.
+
+For future backend features, create `.env.local`:
+
+```env
+# Optional: Custom API endpoint
+EXPO_PUBLIC_API_URL=https://api.example.com
+
+# Optional: Enable debug logging
+EXPO_PUBLIC_DEBUG=false
 ```
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Here's how:
+Contributions are welcome! Here's how:
 
 1. **Fork the repository**
 2. **Create a feature branch** — `git checkout -b feature/amazing-feature`
-3. **Make your changes** — Add tests for new functionality
-4. **Run tests** — `pnpm test` (all must pass)
+3. **Make your changes** — Write clean, documented code
+4. **Test locally** — `pnpm start` and verify changes
 5. **Commit** — `git commit -m 'Add amazing feature'`
 6. **Push** — `git push origin feature/amazing-feature`
 7. **Open Pull Request** — Describe your changes
@@ -261,92 +285,64 @@ We welcome contributions! Here's how:
 pnpm install
 
 # Start dev server
-pnpm dev
+pnpm start
+# Press 'w' for web, 'i' for iOS, 'a' for Android
 
-# Make changes to code
-# Tests run automatically
+# Build for web
+pnpm build:web
 
-# Before committing
-pnpm test      # Run all tests
-pnpm lint      # Check code style
-pnpm format    # Auto-format code
+# Type check
+pnpm typecheck
 ```
-
----
-
-## 🐛 Bug Reports
-
-Found a bug? Please open an issue with:
-
-- **Description** — What happened?
-- **Steps to Reproduce** — How to trigger the bug
-- **Expected Behavior** — What should happen
-- **Screenshots** — If applicable
-- **Environment** — Browser, OS, device
 
 ---
 
 ## 📋 Roadmap
 
-### v1.1 (Next Release)
-- [ ] Batch website audits
-- [ ] Audit scheduling
-- [ ] Email reports
-- [ ] Team collaboration
+### v1.1 (Current)
+- [x] CORS proxy for website fetching
+- [x] Live website preview
+- [x] CSS variable color picker
+- [x] Dark mode theme
+- [ ] Fix preview page routing
 
 ### v1.2
-- [ ] Browser extension
-- [ ] API for programmatic access
-- [ ] Custom audit rules
-- [ ] Performance monitoring
+- [ ] Font and spacing variable editor
+- [ ] Color scheme presets
+- [ ] Undo/redo functionality
+- [ ] Comparison mode (before/after)
 
 ### v2.0
-- [ ] Cloud storage for audits
-- [ ] Team accounts
-- [ ] Advanced analytics
-- [ ] Automated fixes
+- [ ] Backend API (replace CORS proxy)
+- [ ] User accounts and saved audits
+- [ ] Bulk audit multiple pages
+- [ ] Browser extension version
+- [ ] Team collaboration features
+
+---
+
+## 🐛 Known Issues
+
+### Preview Page Loading
+The preview & customize feature is currently experiencing a routing issue. The code is complete but needs proper Expo Router configuration. Fix in progress.
+
+**Workaround:** All other features work perfectly, including the core auditing functionality.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License — see [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 **You're free to:**
 - ✅ Use commercially
 - ✅ Modify and distribute
 - ✅ Use privately
-- ✅ Use in patents
 
 **You must:**
 - ✅ Include license and copyright notice
 
----
-
-## 🙋 Support
-
-### Documentation
-- [Deployment Guide](DEPLOYMENT.md) — How to deploy
-- [Contributing Guide](CONTRIBUTING.md) — How to contribute
-- [API Docs](docs/API.md) — Technical reference
-
-### Community
-- **GitHub Issues** — Bug reports and features
-- **GitHub Discussions** — Questions and ideas
-- **Email** — support@site-auditor-pro.dev
-
----
-
-## 🎯 Key Metrics
-
-| Metric | Value |
-|--------|-------|
-| **Bundle Size** | ~2MB (web) / ~40MB (mobile) |
-| **Load Time** | <2 seconds on 4G |
-| **Test Coverage** | 191 passing tests |
-| **Browser Support** | All modern browsers |
-| **Mobile Support** | iOS 12+, Android 6+ |
-| **Accessibility** | WCAG 2.1 AA compliant |
+See [LICENSE](LICENSE) file for full details.
 
 ---
 
@@ -357,19 +353,23 @@ Built with:
 - [Expo](https://expo.dev/) — React Native platform
 - [TypeScript](https://www.typescriptlang.org/) — Type safety
 - [NativeWind](https://www.nativewind.dev/) — Tailwind for React Native
-- [Vitest](https://vitest.dev/) — Testing framework
+- [Vercel](https://vercel.com/) — Deployment platform
+
+Special thanks to:
+- [AllOrigins](https://allorigins.win/) — CORS proxy service
+- The open-source community
 
 ---
 
 ## 📞 Contact
 
 **Site Auditor Pro**
-- Website: [site-auditor-pro.vercel.app](https://site-auditor-pro.vercel.app)
-- GitHub: [github.com/yourusername/site-auditor-pro](https://github.com/yourusername/site-auditor-pro)
-- Email: hello@site-auditor-pro.dev
+- Live App: [https://site-auditor-pro-nine.vercel.app](https://site-auditor-pro-nine.vercel.app)
+- GitHub: [https://github.com/jenninexus/site-auditor-pro](https://github.com/jenninexus/site-auditor-pro)
+- Issues: [GitHub Issues](https://github.com/jenninexus/site-auditor-pro/issues)
 
 ---
 
-**Made with ❤️ by the Site Auditor Pro team**
+**Made with ❤️ for the web development community**
 
 *Last updated: January 2026*
