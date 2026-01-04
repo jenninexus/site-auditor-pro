@@ -316,12 +316,13 @@ function extractDarkModeColors(html: string): Array<{fg: string; bg: string; ele
     }
   }
   
-  // Also check for common dark mode patterns
+  // ALWAYS include common dark mode patterns (as fallback)
   const commonDarkPatterns = [
-    { fg: "#ffffff", bg: "#000000", element: "dark-body" },
-    { fg: "#e0e0e0", bg: "#121212", element: "dark-text" },
-    { fg: "#b0b0b0", bg: "#1e1e1e", element: "dark-muted" },
-    { fg: "#cccccc", bg: "#2d2d2d", element: "dark-secondary" },
+    { fg: "#ECEDEE", bg: "#151718", element: "dark-body-text" },
+    { fg: "#ffffff", bg: "#0f1419", element: "dark-heading" },
+    { fg: "#9BA1A6", bg: "#151718", element: "dark-muted-text" },
+    { fg: "#3b82f6", bg: "#0f1419", element: "dark-link" },
+    { fg: "#e0e0e0", bg: "#1e1e1e", element: "dark-alt-bg" },
   ];
   
   darkModeColors.push(...commonDarkPatterns);
@@ -411,12 +412,13 @@ function extractLightModeColors(html: string): Array<{fg: string; bg: string; el
     });
   }
   
-  // Add common light mode patterns
+  // Add common light mode patterns (ALWAYS include these as fallback)
   const commonLightPatterns = [
-    { fg: "#000000", bg: "#ffffff", element: "light-body" },
-    { fg: "#333333", bg: "#ffffff", element: "light-text" },
-    { fg: "#666666", bg: "#f5f5f5", element: "light-muted" },
-    { fg: "#444444", bg: "#fafafa", element: "light-secondary" },
+    { fg: "#11181C", bg: "#ffffff", element: "body-text" },
+    { fg: "#333333", bg: "#ffffff", element: "heading-text" },
+    { fg: "#687076", bg: "#ffffff", element: "muted-text" },
+    { fg: "#0066cc", bg: "#ffffff", element: "link-text" },
+    { fg: "#000000", bg: "#f5f5f5", element: "alt-background" },
   ];
   
   lightModeColors.push(...commonLightPatterns);
