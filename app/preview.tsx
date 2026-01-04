@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { View, Text, ActivityIndicator, Alert } from "react-native";
+import { View, Text, ActivityIndicator, Alert, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { WebsitePreview } from "../components/website-preview";
@@ -41,8 +41,14 @@ export default function PreviewPage() {
       setIsLoading(true);
       setError(null);
 
-      // Load audit result from storage
-      const stored = await AsyncStorage.getItem(`audit_${auditId}`);
+      // Load audit result from storage (web-compatible)
+      let stored: string | null = null;
+      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+        stored = localStorage.getItem(auditId);
+      } else {
+        stored = await AsyncStorage.getItem(auditId);
+      }
+      
       if (!stored) {
         setError("Audit result not found");
         return;

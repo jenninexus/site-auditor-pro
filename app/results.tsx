@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, TouchableOpacity, Pressable } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Pressable, Platform } from "react-native";
 import { useState } from "react";
 import { useLocalSearchParams, router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -149,15 +149,25 @@ export default function ResultsScreen() {
           <View className="gap-3">
             <TouchableOpacity
               onPress={() => {
-                // Store audit result for preview page
-                import("@react-native-async-storage/async-storage").then(({ default: AsyncStorage }) => {
-                  const auditId = `audit_${Date.now()}`;
-                  AsyncStorage.setItem(auditId, JSON.stringify(auditResult));
+                // Store audit result for preview page (web-compatible)
+                const auditId = `audit_${Date.now()}`;
+                const auditData = JSON.stringify(auditResult);
+                
+                if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+                  localStorage.setItem(auditId, auditData);
                   router.push({
                     pathname: "/preview",
                     params: { id: auditId },
                   });
-                });
+                } else {
+                  import("@react-native-async-storage/async-storage").then(({ default: AsyncStorage }) => {
+                    AsyncStorage.setItem(auditId, auditData);
+                    router.push({
+                      pathname: "/preview",
+                      params: { id: auditId },
+                    });
+                  });
+                }
               }}
               className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 rounded-full active:opacity-80"
             >

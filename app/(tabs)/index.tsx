@@ -5,6 +5,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { auditWebsite, type AuditResult } from "@/lib/audit-engine";
 import { router } from "expo-router";
+import { ThemeToggleCompact } from "@/components/theme-toggle";
 
 const RECENT_AUDITS_KEY = "recent_audits";
 
@@ -84,8 +85,13 @@ export default function HomeScreen() {
     <ScreenContainer className="p-6">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <View className="flex-1 gap-8">
+          {/* Theme Toggle */}
+          <View className="items-end">
+            <ThemeToggleCompact />
+          </View>
+          
           {/* Hero Section */}
-          <View className="items-center gap-3 mt-4">
+          <View className="items-center gap-3">
             <Text className="text-4xl font-bold text-foreground">Site Auditor</Text>
             <Text className="text-base text-muted text-center leading-relaxed">
               Analyze your website for CSS and JavaScript consistency issues
