@@ -74,20 +74,20 @@ function getVariableType(value: string): CSSVariable["type"] {
 }
 
 /**
- * Parse dark mode CSS rules
+ * Parse Bootstrap data-bs-theme dark mode rules
  */
-function parseDarkModeRules(css: string): Map<string, string> {
+function parseBootstrapDarkMode(css: string): Map<string, string> {
   const darkModeVars = new Map<string, string>();
   
-  // Match @media (prefers-color-scheme: dark) blocks
-  const darkModeRegex = /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/gi;
+  // Match [data-bs-theme="dark"] blocks
+  const bootstrapDarkRegex = /\[data-bs-theme=["']dark["']\]\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/gi;
   let match;
   
-  while ((match = darkModeRegex.exec(css)) !== null) {
+  while ((match = bootstrapDarkRegex.exec(css)) !== null) {
     const darkBlock = match[1];
     
-    // Extract variable declarations from the dark mode block
-    const varRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
+    // Extract Bootstrap variable declarations
+    const varRegex = /--(bs-[\w-]+)\s*:\s*([^;]+);/g;
     let varMatch;
     
     while ((varMatch = varRegex.exec(darkBlock)) !== null) {
@@ -101,6 +101,39 @@ function parseDarkModeRules(css: string): Map<string, string> {
 }
 
 /**
+ * Parse dark mode CSS rules (media query)
+ */
+function parseDarkModeRules(css: string): Map<string, string> {
+  const darkModeVars = new Map<string, string>();
+  
+  // Match @media (prefers-color-scheme: dark) blocks
+  const darkModeRegex = /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/gi;
+  let match;
+  
+  while ((match = darkModeRegex.exec(css)) !== null) {
+    const darkBlock = match[1];
+    
+    // Extract variable declarations from the dark mode block
+    const varRegex = /--([\ w-]+)\s*:\s*([^;]+);/g;
+    let varMatch;
+    
+    while ((varMatch = varRegex.exec(darkBlock)) !== null) {
+      const name = `--${varMatch[1]}`;
+      const value = varMatch[2].trim();
+      darkModeVars.set(name, value);
+    }
+  }
+  
+  // Also check for Bootstrap dark mode
+  const bootstrapVars = parseBootstrapDarkMode(css);
+  bootstrapVars.forEach((value, name) => {
+    darkModeVars.set(name, value);
+  });
+  
+  return darkModeVars;
+}
+
+/**
  * Parse CSS content for variables with mode detection
  */
 function parseCSSContent(
@@ -109,6 +142,9 @@ function parseCSSContent(
 ): CSSVariable[] {
   const variables: CSSVariable[] = [];
   const darkModeVars = parseDarkModeRules(css);
+  
+  // Track Bootstrap variables
+  const isBootstrapVar = (name: string) => name.startsWith('--bs-');
   
   // Match CSS rules with variable declarations (excluding @media blocks)
   // Remove @media blocks first to avoid double-counting

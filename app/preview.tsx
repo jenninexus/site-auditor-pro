@@ -9,6 +9,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { WebsitePreview } from "../components/website-preview";
 import { CSSVariableEditor } from "../components/css-variable-editor";
+import { BootstrapThemeExport } from "../components/bootstrap-theme-export";
+import { extractBootstrapVariables, BootstrapTheme } from "../lib/bootstrap-theme-exporter";
 import {
   extractCSSVariablesByMode,
   getColorVariablesByMode,
@@ -155,6 +157,36 @@ export default function PreviewPage() {
 
   const getCurrentModified = (): Map<string, string> => {
     return activeMode === "light" ? lightModified : darkModified;
+  };
+
+  // Check if site uses Bootstrap
+  const hasBootstrap = (): boolean => {
+    if (!palette) return false;
+    const allVars = [...palette.light, ...palette.dark, ...palette.shared];
+    return allVars.some(v => v.name.startsWith('--bs-'));
+  };
+
+  // Get Bootstrap theme for export
+  const getBootstrapTheme = (): BootstrapTheme => {
+    const lightVars = palette?.light || [];
+    const darkVars = palette?.dark || [];
+    
+    // Merge original values with modifications
+    const lightMap = extractBootstrapVariables(lightVars);
+    lightModified.forEach((value, name) => {
+      if (name.startsWith('--bs-')) {
+        lightMap.set(name, value);
+      }
+    });
+    
+    const darkMap = extractBootstrapVariables(darkVars);
+    darkModified.forEach((value, name) => {
+      if (name.startsWith('--bs-')) {
+        darkMap.set(name, value);
+      }
+    });
+    
+    return { light: lightMap, dark: darkMap };
   };
 
   // Loading state
@@ -332,6 +364,16 @@ export default function PreviewPage() {
             onReset={handleReset}
             onExport={handleExport}
           />
+          
+          {/* Bootstrap Theme Export (if Bootstrap detected) */}
+          {hasBootstrap() && (
+            <View className="p-4 border-t border-border">
+              <BootstrapThemeExport
+                theme={getBootstrapTheme()}
+                siteName={auditResult?.url.replace(/^https?:\/\//, '').split('/')[0]}
+              />
+            </View>
+          )}
         </View>
       </View>
     </View>
