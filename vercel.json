@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm install && pnpm build:web",
+  "buildCommand": "mkdir -p node_modules/react-native-css-interop/.cache && touch node_modules/react-native-css-interop/.cache/web.css && pnpm install && pnpm build:web",
   "outputDirectory": "dist-web",
   "rewrites": [
     {
