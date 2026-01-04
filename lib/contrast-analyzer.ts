@@ -292,18 +292,49 @@ function generateColorSuggestions(
 
 /**
  * Extract dark mode colors from CSS
+ * Supports multiple dark mode implementations:
+ * 1. Bootstrap data-bs-theme="dark"
+ * 2. @media (prefers-color-scheme: dark)
+ * 3. Class-based .dark
+ * 4. CSS variables
+ * 5. Fallback common patterns
  */
 function extractDarkModeColors(html: string): Array<{fg: string; bg: string; element: string}> {
   const darkModeColors: Array<{fg: string; bg: string; element: string}> = [];
   
-  // Look for @media (prefers-color-scheme: dark) rules
-  const darkModeRegex = /@media\s*\(prefers-color-scheme:\s*dark\)\s*{([^}]+)}/gi;
+  // 1. Bootstrap 5.3+ data-bs-theme="dark"
+  const bootstrapDarkRegex = /\[data-bs-theme=["']dark["']\]\s*{([^}]+)}/gi;
   let match;
   
-  while ((match = darkModeRegex.exec(html)) !== null) {
+  while ((match = bootstrapDarkRegex.exec(html)) !== null) {
     const cssBlock = match[1];
     
-    // Extract color and background-color from the block
+    // Extract Bootstrap CSS variables
+    const bsBodyColor = /--bs-body-color:\s*([^;]+);/i.exec(cssBlock);
+    const bsBodyBg = /--bs-body-bg:\s*([^;]+);/i.exec(cssBlock);
+    const bsLinkColor = /--bs-link-color:\s*([^;]+);/i.exec(cssBlock);
+    
+    if (bsBodyColor || bsBodyBg) {
+      darkModeColors.push({
+        fg: bsBodyColor ? bsBodyColor[1].trim() : "#F0F6FC",
+        bg: bsBodyBg ? bsBodyBg[1].trim() : "#0f1419",
+        element: "bootstrap-dark-body",
+      });
+    }
+    
+    if (bsLinkColor) {
+      darkModeColors.push({
+        fg: bsLinkColor[1].trim(),
+        bg: bsBodyBg ? bsBodyBg[1].trim() : "#0f1419",
+        element: "bootstrap-dark-link",
+      });
+    }
+  }
+  
+  // 2. @media (prefers-color-scheme: dark)
+  const mediaDarkRegex = /@media\s*\(prefers-color-scheme:\s*dark\)\s*{([^}]+)}/gi;
+  while ((match = mediaDarkRegex.exec(html)) !== null) {
+    const cssBlock = match[1];
     const colorMatch = /color:\s*([^;]+);/i.exec(cssBlock);
     const bgMatch = /background(?:-color)?:\s*([^;]+);/i.exec(cssBlock);
     
@@ -311,18 +342,35 @@ function extractDarkModeColors(html: string): Array<{fg: string; bg: string; ele
       darkModeColors.push({
         fg: colorMatch ? colorMatch[1].trim() : "#ffffff",
         bg: bgMatch ? bgMatch[1].trim() : "#000000",
-        element: "dark-mode-style",
+        element: "media-query-dark",
       });
     }
   }
   
-  // ALWAYS include common dark mode patterns (as fallback)
+  // 3. Class-based .dark (Tailwind, custom)
+  const darkClassRegex = /\.dark\s+([^{]*){([^}]+)}/gi;
+  while ((match = darkClassRegex.exec(html)) !== null) {
+    const cssBlock = match[2];
+    const colorMatch = /color:\s*([^;]+);/i.exec(cssBlock);
+    const bgMatch = /background(?:-color)?:\s*([^;]+);/i.exec(cssBlock);
+    
+    if (colorMatch || bgMatch) {
+      darkModeColors.push({
+        fg: colorMatch ? colorMatch[1].trim() : "#ffffff",
+        bg: bgMatch ? bgMatch[1].trim() : "#000000",
+        element: "dark-class",
+      });
+    }
+  }
+  
+  // 4. ALWAYS include common dark mode patterns (as fallback)
   const commonDarkPatterns = [
-    { fg: "#ECEDEE", bg: "#151718", element: "dark-body-text" },
-    { fg: "#ffffff", bg: "#0f1419", element: "dark-heading" },
+    { fg: "#F0F6FC", bg: "#0f1419", element: "dark-body-text" },
+    { fg: "#ECEDEE", bg: "#151718", element: "dark-alt-text" },
+    { fg: "#ffffff", bg: "#0d1117", element: "dark-heading" },
     { fg: "#9BA1A6", bg: "#151718", element: "dark-muted-text" },
     { fg: "#3b82f6", bg: "#0f1419", element: "dark-link" },
-    { fg: "#e0e0e0", bg: "#1e1e1e", element: "dark-alt-bg" },
+    { fg: "#e0e0e0", bg: "#1e1e1e", element: "dark-secondary-bg" },
   ];
   
   darkModeColors.push(...commonDarkPatterns);
