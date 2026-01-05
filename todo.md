@@ -78,6 +78,7 @@
 - [x] Unit tests for color harmony (47 tests passing)
 
 ## Copy-to-Clipboard & Batch Export (NEW)
+
 - [ ] Implement copy-to-clipboard for individual color pairs
 - [ ] Add visual feedback (toast notification) on copy
 - [x] Generate CSS snippet from suggestions
@@ -87,12 +88,12 @@
 - [x] Unit tests for export functionality (37 tests passing)
 
 ## GitHub Publishing & Documentation (NEW)
-- [ ] Create comprehensive README.md
-- [ ] Add LICENSE file (MIT)
+- [x] Create comprehensive README.md
+- [x] Add LICENSE file (MIT)
 - [ ] Create CONTRIBUTING.md for contributors
-- [ ] Set up .gitignore properly
+- [x] Set up .gitignore properly
 - [ ] Create GitHub Actions CI/CD workflow
-- [ ] Deploy web version to Vercel
+- [x] Deploy web version to Vercel
 - [ ] Create GitHub Releases with version tags
 - [ ] Set up GitHub Pages documentation
 
