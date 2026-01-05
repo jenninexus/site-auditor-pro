@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, TextInput, ActivityIndicator, Alert } from "react-native";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ScreenContainer } from "@/components/screen-container";
@@ -6,6 +6,7 @@ import { useColors } from "@/hooks/use-colors";
 import { auditWebsite, type AuditResult } from "@/lib/audit-engine";
 import { router } from "expo-router";
 import { ThemeToggleCompact } from "@/components/theme-toggle";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 
 const RECENT_AUDITS_KEY = "recent_audits";
 
@@ -25,7 +26,7 @@ export default function HomeScreen() {
       const stored = await AsyncStorage.getItem(RECENT_AUDITS_KEY);
       if (stored) {
         const audits = JSON.parse(stored) as AuditResult[];
-        setRecentAudits(audits.slice(0, 3)); // Show last 3 audits
+        setRecentAudits(audits.slice(0, 5)); // Show last 5 audits
       }
     } catch (error) {
       console.error("Failed to load recent audits:", error);
@@ -36,18 +37,36 @@ export default function HomeScreen() {
     try {
       const stored = await AsyncStorage.getItem(RECENT_AUDITS_KEY);
       const audits = stored ? (JSON.parse(stored) as AuditResult[]) : [];
+      
+      // Remove existing audit for same URL to avoid duplicates
+      const filtered = audits.filter(a => a.url !== result.url);
+      
       // Add new audit to the beginning and keep only last 10
-      const updated = [result, ...audits].slice(0, 10);
+      const updated = [result, ...filtered].slice(0, 10);
       await AsyncStorage.setItem(RECENT_AUDITS_KEY, JSON.stringify(updated));
-      setRecentAudits(updated.slice(0, 3));
+      setRecentAudits(updated.slice(0, 5));
     } catch (error) {
       console.error("Failed to save audit:", error);
     }
   };
 
+  const removeAudit = async (urlToRemove: string) => {
+    try {
+      const stored = await AsyncStorage.getItem(RECENT_AUDITS_KEY);
+      if (stored) {
+        const audits = JSON.parse(stored) as AuditResult[];
+        const updated = audits.filter(a => a.url !== urlToRemove);
+        await AsyncStorage.setItem(RECENT_AUDITS_KEY, JSON.stringify(updated));
+        setRecentAudits(updated.slice(0, 5));
+      }
+    } catch (error) {
+      console.error("Failed to remove audit:", error);
+    }
+  };
+
   const handleAudit = async () => {
     if (!url.trim()) {
-      alert("Please enter a website URL");
+      Alert.alert("Error", "Please enter a website URL");
       return;
     }
 
@@ -68,7 +87,7 @@ export default function HomeScreen() {
         params: { auditId: JSON.stringify(result) },
       });
     } catch (error) {
-      alert(`Audit failed: ${error}`);
+      Alert.alert("Audit Failed", `${error}`);
     } finally {
       setLoading(false);
     }
@@ -150,38 +169,47 @@ export default function HomeScreen() {
             <View className="gap-3">
               <Text className="text-lg font-semibold text-foreground">Recent Audits</Text>
               {recentAudits.map((audit, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => handleRecentAudit(audit)}
-                  className="bg-surface rounded-xl p-4 border border-border active:opacity-70"
-                >
-                  <View className="flex-row items-center justify-between gap-3">
-                    <View className="flex-1">
-                      <Text className="text-sm font-semibold text-foreground truncate">
-                        {audit.url}
-                      </Text>
-                      <Text className="text-xs text-muted mt-1">
-                        {new Date(audit.timestamp).toLocaleDateString()}
-                      </Text>
+                <View key={index} className="relative">
+                  <TouchableOpacity
+                    onPress={() => handleRecentAudit(audit)}
+                    className="bg-surface rounded-xl p-4 border border-border active:opacity-70"
+                  >
+                    <View className="flex-row items-center justify-between gap-3">
+                      <View className="flex-1 pr-8">
+                        <Text className="text-sm font-semibold text-foreground truncate">
+                          {audit.url}
+                        </Text>
+                        <Text className="text-xs text-muted mt-1">
+                          {new Date(audit.timestamp).toLocaleDateString()}
+                        </Text>
+                      </View>
+                      <View className="items-center">
+                        <Text
+                          className="text-lg font-bold"
+                          style={{
+                            color:
+                              audit.overallScore >= 80
+                                ? colors.success
+                                : audit.overallScore >= 60
+                                  ? "#F59E0B"
+                                  : colors.error,
+                          }}
+                        >
+                          {Math.round(audit.overallScore)}
+                        </Text>
+                        <Text className="text-xs text-muted">Score</Text>
+                      </View>
                     </View>
-                    <View className="items-center">
-                      <Text
-                        className="text-lg font-bold"
-                        style={{
-                          color:
-                            audit.overallScore >= 80
-                              ? colors.success
-                              : audit.overallScore >= 60
-                                ? "#F59E0B"
-                                : colors.error,
-                        }}
-                      >
-                        {Math.round(audit.overallScore)}
-                      </Text>
-                      <Text className="text-xs text-muted">Score</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                  
+                  {/* Remove Button */}
+                  <TouchableOpacity
+                    onPress={() => removeAudit(audit.url)}
+                    className="absolute top-2 right-2 p-2 z-10"
+                  >
+                    <IconSymbol name="xmark.circle.fill" size={20} color={colors.muted} />
+                  </TouchableOpacity>
+                </View>
               ))}
             </View>
           )}
