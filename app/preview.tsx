@@ -69,8 +69,8 @@ export default function PreviewPage() {
       const fetchedHtml = await response.text();
       setHtml(fetchedHtml);
 
-      // Extract CSS variables by mode
-      const extractedPalette = extractCSSVariablesByMode(fetchedHtml);
+      // Extract CSS variables by mode (passing baseUrl to fetch external stylesheets)
+      const extractedPalette = await extractCSSVariablesByMode(fetchedHtml, result.url);
       setPalette(extractedPalette);
 
       setIsLoading(false);

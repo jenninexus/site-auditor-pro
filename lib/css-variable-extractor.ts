@@ -263,15 +263,15 @@ function groupVariablesByMode(variables: CSSVariable[]): CSSVariablePalette {
 }
 
 /**
- * Main function to extract all CSS variables from HTML
+ * Main function to extract all CSS variables from HTML and external stylesheets
  */
-export function extractCSSVariables(html: string): CSSVariable[] {
+export async function extractCSSVariables(html: string, baseUrl?: string): Promise<CSSVariable[]> {
   const variables: CSSVariable[] = [];
 
-  // Extract from inline styles
+  // 1. Extract from inline styles
   variables.push(...extractFromInlineStyles(html));
 
-  // Extract from style attributes
+  // 2. Extract from style attributes
   const styleAttrRegex = /style=["']([^"']+)["']/gi;
   let match;
   while ((match = styleAttrRegex.exec(html)) !== null) {
@@ -292,6 +292,45 @@ export function extractCSSVariables(html: string): CSSVariable[] {
     }
   }
 
+  // 3. Extract from external stylesheets if baseUrl is provided
+  if (baseUrl) {
+    const linkRegex = /<link[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>|<link[^>]*href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*>/gi;
+    let linkMatch;
+    const stylesheetUrls: string[] = [];
+
+    while ((linkMatch = linkRegex.exec(html)) !== null) {
+      const href = linkMatch[1] || linkMatch[2];
+      if (href) {
+        try {
+          let fullUrl = href;
+          if (!href.startsWith("http") && !href.startsWith("//")) {
+            const base = new URL(baseUrl);
+            fullUrl = new URL(href, base.origin + base.pathname).href;
+          } else if (href.startsWith("//")) {
+            fullUrl = "https:" + href;
+          }
+          stylesheetUrls.push(fullUrl);
+        } catch (e) {
+          console.warn("Failed to parse stylesheet URL:", href);
+        }
+      }
+    }
+
+    // Fetch and parse each stylesheet
+    for (const url of stylesheetUrls) {
+      try {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl);
+        if (response.ok) {
+          const cssContent = await response.text();
+          variables.push(...parseCSSContent(cssContent, "stylesheet"));
+        }
+      } catch (e) {
+        console.warn("Failed to fetch external stylesheet:", url);
+      }
+    }
+  }
+
   // Remove duplicates (keep first occurrence)
   const seen = new Set<string>();
   const unique = variables.filter((v) => {
@@ -307,6 +346,14 @@ export function extractCSSVariables(html: string): CSSVariable[] {
     if (a.type !== "color" && b.type === "color") return 1;
     return a.name.localeCompare(b.name);
   });
+}
+
+/**
+ * Extract CSS variables separated by mode (Async version)
+ */
+export async function extractCSSVariablesByMode(html: string, baseUrl?: string): Promise<CSSVariablePalette> {
+  const allVariables = await extractCSSVariables(html, baseUrl);
+  return groupVariablesByMode(allVariables);
 }
 
 /**
