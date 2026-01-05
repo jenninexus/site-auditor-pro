@@ -175,7 +175,7 @@ export default function HomeScreen() {
                     className="bg-surface rounded-xl p-4 border border-border active:opacity-70"
                   >
                     <View className="flex-row items-center justify-between gap-3">
-                      <View className="flex-1 pr-8">
+                      <View className="flex-1 pr-12">
                         <Text className="text-sm font-semibold text-foreground truncate">
                           {audit.url}
                         </Text>
@@ -183,7 +183,7 @@ export default function HomeScreen() {
                           {new Date(audit.timestamp).toLocaleDateString()}
                         </Text>
                       </View>
-                      <View className="items-center">
+                      <View className="items-center pr-10">
                         <Text
                           className="text-lg font-bold"
                           style={{
@@ -205,7 +205,7 @@ export default function HomeScreen() {
                   {/* Remove Button */}
                   <TouchableOpacity
                     onPress={() => removeAudit(audit.url)}
-                    className="absolute top-0 right-0 p-3 z-10"
+                    className="absolute top-1/2 -translate-y-1/2 right-2 p-2 z-10"
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
                     <IconSymbol name="xmark.circle.fill" size={22} color={colors.error} />
