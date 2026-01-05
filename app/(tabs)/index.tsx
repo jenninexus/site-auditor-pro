@@ -205,9 +205,10 @@ export default function HomeScreen() {
                   {/* Remove Button */}
                   <TouchableOpacity
                     onPress={() => removeAudit(audit.url)}
-                    className="absolute top-2 right-2 p-2 z-10"
+                    className="absolute top-0 right-0 p-3 z-10"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <IconSymbol name="xmark.circle.fill" size={20} color={colors.muted} />
+                    <IconSymbol name="xmark.circle.fill" size={22} color={colors.error} />
                   </TouchableOpacity>
                 </View>
               ))}
