@@ -290,13 +290,15 @@ function analyzeJSConsistency(scripts: ScriptInfo[]): AuditIssue[] {
   // Check for duplicate scripts
   const duplicates = scripts.filter((s) => s.isDuplicate);
   if (duplicates.length > 0) {
+    const duplicateUrls = Array.from(new Set(duplicates.map(s => s.url)));
     issues.push({
       id: "duplicate-scripts",
       category: "javascript",
       severity: "critical",
       title: "Duplicate Script Files",
       description: `${duplicates.length} script files are loaded multiple times.`,
-      recommendation: "Remove duplicate script tags from your HTML.",
+      examples: duplicateUrls,
+      recommendation: "Remove duplicate script tags from your HTML. Check these URLs: " + duplicateUrls.join(", "),
       difficulty: "easy",
       impact: "high",
     });

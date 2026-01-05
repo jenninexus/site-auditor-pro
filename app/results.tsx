@@ -1,10 +1,11 @@
-import { ScrollView, Text, View, TouchableOpacity, Pressable, Platform } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Platform, Alert } from "react-native";
 import { useState } from "react";
 import { useLocalSearchParams, router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { type AuditResult, type AuditIssue } from "@/lib/audit-engine";
 import { generateAuditReport } from "@/lib/report-generator";
+import { exportPDFReport, printPDFReport } from "@/lib/pdf-report-generator";
 
 export default function ResultsScreen() {
   const colors = useColors();
@@ -147,6 +148,36 @@ export default function ResultsScreen() {
 
           {/* View Reports Buttons */}
           <View className="gap-3">
+            {Platform.OS === 'web' && (
+              <>
+                <TouchableOpacity
+                  onPress={() => {
+                    try {
+                      exportPDFReport(auditResult, { companyName: "Site Auditor Pro" });
+                      Alert.alert("Success", "Report exported as HTML. You can print it as PDF from your browser.");
+                    } catch (error) {
+                      Alert.alert("Error", "Failed to export report");
+                    }
+                  }}
+                  className="bg-blue-600 px-6 py-3 rounded-full active:opacity-80"
+                >
+                  <Text className="text-white font-semibold text-center">📄 Export as PDF</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    try {
+                      printPDFReport(auditResult, { companyName: "Site Auditor Pro" });
+                    } catch (error) {
+                      Alert.alert("Error", "Failed to print report");
+                    }
+                  }}
+                  className="bg-indigo-600 px-6 py-3 rounded-full active:opacity-80"
+                >
+                  <Text className="text-white font-semibold text-center">🖨️ Print Report</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            
             <TouchableOpacity
               onPress={() => {
                 // Store audit result for preview page (web-compatible)

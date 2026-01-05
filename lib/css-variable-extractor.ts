@@ -114,7 +114,7 @@ function parseDarkModeRules(css: string): Map<string, string> {
     const darkBlock = match[1];
     
     // Extract variable declarations from the dark mode block
-    const varRegex = /--([\ w-]+)\s*:\s*([^;]+);/g;
+    const varRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
     let varMatch;
     
     while ((varMatch = varRegex.exec(darkBlock)) !== null) {
@@ -142,9 +142,6 @@ function parseCSSContent(
 ): CSSVariable[] {
   const variables: CSSVariable[] = [];
   const darkModeVars = parseDarkModeRules(css);
-  
-  // Track Bootstrap variables
-  const isBootstrapVar = (name: string) => name.startsWith('--bs-');
   
   // Match CSS rules with variable declarations (excluding @media blocks)
   // Remove @media blocks first to avoid double-counting
@@ -274,6 +271,27 @@ export function extractCSSVariables(html: string): CSSVariable[] {
   // Extract from inline styles
   variables.push(...extractFromInlineStyles(html));
 
+  // Extract from style attributes
+  const styleAttrRegex = /style=["']([^"']+)["']/gi;
+  let match;
+  while ((match = styleAttrRegex.exec(html)) !== null) {
+    const styleAttr = match[1];
+    const varRegex = /--([\w-]+)\s*:\s*([^;]+)/g;
+    let varMatch;
+    while ((varMatch = varRegex.exec(styleAttr)) !== null) {
+      const name = `--${varMatch[1]}`;
+      const value = varMatch[2].trim();
+      variables.push({
+        name,
+        value,
+        originalValue: value,
+        selector: "inline-attr",
+        type: getVariableType(value),
+        source: "inline",
+      });
+    }
+  }
+
   // Remove duplicates (keep first occurrence)
   const seen = new Set<string>();
   const unique = variables.filter((v) => {
@@ -324,7 +342,18 @@ export function getColorVariablesByMode(
   mode: ColorMode
 ): CSSVariable[] {
   const vars = mode === "light" ? palette.light : palette.dark;
-  return getColorVariables(vars);
+  const sharedVars = palette.shared;
+  
+  // Combine mode-specific colors with shared colors
+  const allColors = [...getColorVariables(vars), ...getColorVariables(sharedVars)];
+  
+  // Deduplicate by name
+  const seen = new Set<string>();
+  return allColors.filter(v => {
+    if (seen.has(v.name)) return false;
+    seen.add(v.name);
+    return true;
+  });
 }
 
 /**
@@ -367,11 +396,11 @@ export function generateDualModeCSSFromVariables(
   lightModified?: Map<string, string>,
   darkModified?: Map<string, string>
 ): string {
-  let css = "/* CSS Variables - Light and Dark Mode */\n\n";
+  let css = "/* Modified CSS Variables (Light & Dark Modes) */\n\n";
   
   // Light mode (default)
-  if (palette.light.length > 0) {
-    const lightVars = palette.light;
+  if (palette.light.length > 0 || palette.shared.length > 0) {
+    const lightVars = [...palette.light, ...palette.shared];
     const grouped = new Map<string, CSSVariable[]>();
     
     lightVars.forEach(v => {
@@ -444,45 +473,4 @@ export function normalizeColor(color: string): string {
 
   // Return as-is for other formats
   return trimmed;
-}
-
-/**
- * Get a preview of how many variables were found
- */
-export function getVariableSummary(variables: CSSVariable[]): {
-  total: number;
-  colors: number;
-  sizes: number;
-  other: number;
-} {
-  return {
-    total: variables.length,
-    colors: variables.filter((v) => v.type === "color").length,
-    sizes: variables.filter((v) => v.type === "size").length,
-    other: variables.filter((v) => v.type === "other").length,
-  };
-}
-
-/**
- * Get summary for mode-separated variables
- */
-export function getModeSummary(palette: CSSVariablePalette): {
-  light: { total: number; colors: number };
-  dark: { total: number; colors: number };
-  shared: { total: number; colors: number };
-} {
-  return {
-    light: {
-      total: palette.light.length,
-      colors: getColorVariables(palette.light).length,
-    },
-    dark: {
-      total: palette.dark.length,
-      colors: getColorVariables(palette.dark).length,
-    },
-    shared: {
-      total: palette.shared.length,
-      colors: getColorVariables(palette.shared).length,
-    },
-  };
 }

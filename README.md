@@ -120,6 +120,14 @@ pnpm build:web
 5. **See Changes Live** — Preview updates in real-time
 6. **Download CSS** — Export your modified styles
 
+### 🎨 Theme Lab Enhanced (Developer Tool)
+
+1. **Navigate to `/dev/theme-lab-enhanced`**
+2. **Side-by-Side Editing** — Customize light and dark modes simultaneously
+3. **Interactive Swatches** — Click any color to open the advanced picker
+4. **Component Preview** — See how your theme affects buttons, cards, and text in real-time
+5. **Export Theme Config** — Generate a `theme.config.js` compatible file to save your changes permanently
+
 ### 5. View Recommendations
 
 1. **Click "View Recommendations"**
@@ -160,12 +168,19 @@ site-auditor-pro/
 │   ├── accessibility.tsx        # Color contrast report
 │   ├── recommendations.tsx      # Implementation guide
 │   ├── preview.tsx              # Live preview & color editor (NEW!)
+│   ├── dev/
+│   │   └── theme-lab-enhanced.tsx # Advanced theme customizer (NEW!)
 │   └── _layout.tsx              # Root layout
 ├── components/                   # Reusable components
 │   ├── screen-container.tsx     # SafeArea wrapper
 │   ├── website-preview.tsx      # Iframe preview (NEW!)
 │   ├── css-variable-editor.tsx  # Color picker UI (NEW!)
+│   ├── color-picker-modal.tsx   # Advanced color picker (NEW!)
+│   ├── editable-color-swatch.tsx # Interactive color swatch (NEW!)
 │   └── ui/
+├── hooks/                        # React hooks
+│   ├── use-color-customization.ts # Theme state management (NEW!)
+│   └── ...
 ├── lib/                          # Core logic
 │   ├── audit-engine.ts          # Main audit orchestrator
 │   ├── contrast-analyzer.ts     # WCAG compliance
