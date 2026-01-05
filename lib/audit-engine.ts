@@ -51,7 +51,7 @@ interface ScriptInfo {
 /**
  * Main audit function that analyzes a website
  */
-export async function auditWebsite(url: string): Promise<AuditResult> {
+export async function auditWebsite(url: string, skipCache: boolean = false): Promise<AuditResult> {
   try {
     // Ensure URL has protocol
     let auditUrl = url.trim();
@@ -60,7 +60,9 @@ export async function auditWebsite(url: string): Promise<AuditResult> {
     }
 
     // Use CORS proxy to bypass browser restrictions
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(auditUrl)}`;
+    // Add cache-busting timestamp if skipCache is true
+    const cacheParam = skipCache ? `&t=${Date.now()}` : "";
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(auditUrl)}${cacheParam}`;
     const response = await fetch(proxyUrl);
     const html = await response.text();
 
