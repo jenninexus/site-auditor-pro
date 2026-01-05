@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { fixCode } from "@/lib/code-fixer";
 
 interface AnalysisResult {
   type: "css" | "js";
@@ -23,11 +24,13 @@ export default function CodeAnalyzerScreen() {
   const [code, setCode] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [fixedCode, setFixedCode] = useState<string | null>(null);
 
   const analyzeCode = () => {
     if (!code.trim()) return;
     
     setIsAnalyzing(true);
+    setFixedCode(null);
     
     // Simulate analysis delay
     setTimeout(() => {
@@ -92,6 +95,30 @@ export default function CodeAnalyzerScreen() {
       });
       setIsAnalyzing(false);
     }, 800);
+  };
+
+  const handleAutoFix = () => {
+    if (!result) return;
+    
+    const fixed = fixCode(code, result.type);
+    setFixedCode(fixed.fixed);
+    
+    Alert.alert(
+      "Auto-Fix Applied",
+      `${fixed.fixesApplied.length} fixes applied:\n\n${fixed.fixesApplied.join("\n")}`,
+      [
+        {
+          text: "Copy Fixed Code",
+          onPress: () => {
+            if (typeof navigator !== "undefined" && navigator.clipboard) {
+              navigator.clipboard.writeText(fixed.fixed);
+              Alert.alert("Copied!", "Fixed code copied to clipboard");
+            }
+          },
+        },
+        { text: "Close", style: "cancel" },
+      ]
+    );
   };
 
   return (
@@ -162,29 +189,49 @@ export default function CodeAnalyzerScreen() {
                   <Text className="text-success/80 text-center mt-1">Your code looks clean and follows best practices.</Text>
                 </View>
               ) : (
-                result.issues.map((issue, index) => (
-                  <View key={index} className="bg-surface p-4 rounded-2xl border border-border flex-row gap-4">
-                    <View className={`w-1 rounded-full ${
-                      issue.severity === "critical" ? "bg-error" : 
-                      issue.severity === "warning" ? "bg-warning" : "bg-info"
-                    }`} />
-                    <View className="flex-1">
-                      <View className="flex-row items-center gap-2">
-                        <Text className="font-bold text-foreground">{issue.title}</Text>
-                        <View className={`px-2 py-0.5 rounded-full ${
-                          issue.severity === "critical" ? "bg-error/10" : 
-                          issue.severity === "warning" ? "bg-warning/10" : "bg-info/10"
-                        }`}>
-                          <Text className={`text-[10px] font-bold uppercase ${
-                            issue.severity === "critical" ? "text-error" : 
-                            issue.severity === "warning" ? "text-warning" : "text-info"
-                          }`}>{issue.severity}</Text>
+                <>
+                  {result.issues.map((issue, index) => (
+                    <View key={index} className="bg-surface p-4 rounded-2xl border border-border flex-row gap-4">
+                      <View className={`w-1 rounded-full ${
+                        issue.severity === "critical" ? "bg-error" : 
+                        issue.severity === "warning" ? "bg-warning" : "bg-info"
+                      }`} />
+                      <View className="flex-1">
+                        <View className="flex-row items-center gap-2">
+                          <Text className="font-bold text-foreground">{issue.title}</Text>
+                          <View className={`px-2 py-0.5 rounded-full ${
+                            issue.severity === "critical" ? "bg-error/10" : 
+                            issue.severity === "warning" ? "bg-warning/10" : "bg-info/10"
+                          }`}>
+                            <Text className={`text-[10px] font-bold uppercase ${
+                              issue.severity === "critical" ? "text-error" : 
+                              issue.severity === "warning" ? "text-warning" : "text-info"
+                            }`}>{issue.severity}</Text>
+                          </View>
                         </View>
+                        <Text className="text-sm text-muted mt-1">{issue.description}</Text>
                       </View>
-                      <Text className="text-sm text-muted mt-1">{issue.description}</Text>
                     </View>
-                  </View>
-                ))
+                  ))}
+                  
+                  <TouchableOpacity
+                    onPress={handleAutoFix}
+                    className="bg-success py-4 rounded-2xl flex-row items-center justify-center gap-2 mt-2"
+                  >
+                    <IconSymbol name="paperplane.fill" size={20} color="white" />
+                    <Text className="text-white font-bold text-lg">Fix My Code</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+
+              {fixedCode && (
+                <View className="bg-success/10 p-4 rounded-2xl border border-success/20">
+                  <Text className="text-success font-bold mb-2">Fixed Code Preview:</Text>
+                  <Text className="text-success/90 font-mono text-xs" numberOfLines={10}>
+                    {fixedCode.substring(0, 300)}...
+                  </Text>
+                </View>
               )}
             </View>
           )}
