@@ -223,10 +223,9 @@ export default function CodeAnalyzerScreen() {
                   </TouchableOpacity>
                 </>
               )}
-            </View>
-
+              
               {fixedCode && (
-                <View className="bg-success/10 p-4 rounded-2xl border border-success/20">
+                <View className="bg-success/10 p-4 rounded-2xl border border-success/20 mt-4">
                   <Text className="text-success font-bold mb-2">Fixed Code Preview:</Text>
                   <Text className="text-success/90 font-mono text-xs" numberOfLines={10}>
                     {fixedCode.substring(0, 300)}...
