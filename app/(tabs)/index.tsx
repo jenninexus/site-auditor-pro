@@ -164,6 +164,13 @@ export default function HomeScreen() {
             </View>
           </View>
 
+          {/* Privacy Policy Link */}
+          <View className="items-center py-4">
+            <TouchableOpacity onPress={() => router.push("/privacy")}>
+              <Text className="text-sm text-muted underline">Privacy Policy</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Recent Audits */}
           {recentAudits.length > 0 && (
             <View className="gap-3">

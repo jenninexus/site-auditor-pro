@@ -20,6 +20,7 @@ import {
   ColorMode,
 } from "../lib/css-variable-extractor";
 import { AuditResult } from "../lib/audit-engine";
+import { enhancePaletteWithBootstrapFallback } from "../lib/bootstrap-fallback";
 
 export default function PreviewPage() {
   const params = useLocalSearchParams();
@@ -62,15 +63,17 @@ export default function PreviewPage() {
       setAuditResult(result);
 
       // Fetch the HTML again (we need it for preview)
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(
-        result.url
-      )}`;
+      const proxyUrl = `/api/proxy?url=${encodeURIComponent(result.url)}`;
       const response = await fetch(proxyUrl);
       const fetchedHtml = await response.text();
       setHtml(fetchedHtml);
 
       // Extract CSS variables by mode (passing baseUrl to fetch external stylesheets)
-      const extractedPalette = await extractCSSVariablesByMode(fetchedHtml, result.url);
+      let extractedPalette = await extractCSSVariablesByMode(fetchedHtml, result.url);
+      
+      // If no variables found but Bootstrap is detected, use Bootstrap defaults
+      extractedPalette = enhancePaletteWithBootstrapFallback(extractedPalette, fetchedHtml);
+      
       setPalette(extractedPalette);
 
       setIsLoading(false);

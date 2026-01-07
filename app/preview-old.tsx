@@ -58,9 +58,7 @@ export default function PreviewPage() {
       setAuditResult(result);
 
       // Fetch the HTML again (we need it for preview)
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(
-        result.url
-      )}`;
+      const proxyUrl = `/api/proxy?url=${encodeURIComponent(result.url)}`;
       const response = await fetch(proxyUrl);
       const fetchedHtml = await response.text();
       setHtml(fetchedHtml);
