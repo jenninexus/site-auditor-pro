@@ -349,18 +349,11 @@ export async function extractCSSVariables(html: string, baseUrl?: string): Promi
 }
 
 /**
- * Extract CSS variables separated by mode (Async version)
+ * Extract CSS variables separated by mode
+ * Async function that fetches external stylesheets when baseUrl is provided
  */
 export async function extractCSSVariablesByMode(html: string, baseUrl?: string): Promise<CSSVariablePalette> {
   const allVariables = await extractCSSVariables(html, baseUrl);
-  return groupVariablesByMode(allVariables);
-}
-
-/**
- * Extract CSS variables separated by mode
- */
-export function extractCSSVariablesByMode(html: string): CSSVariablePalette {
-  const allVariables = extractCSSVariables(html);
   return groupVariablesByMode(allVariables);
 }
 
