@@ -62,7 +62,7 @@ export async function auditWebsite(url: string, skipCache: boolean = false): Pro
     // Use our own Vercel Edge Function proxy to bypass CORS restrictions
     // Add cache-busting timestamp if skipCache is true
     const cacheParam = skipCache ? `&t=${Date.now()}` : "";
-    const proxyUrl = `/api/proxy?url=${encodeURIComponent(auditUrl)}${cacheParam}`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(auditUrl)}${cacheParam}`;
     const response = await fetch(proxyUrl);
     const html = await response.text();
 

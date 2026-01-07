@@ -319,7 +319,7 @@ export async function extractCSSVariables(html: string, baseUrl?: string): Promi
     // Fetch and parse each stylesheet
     for (const url of stylesheetUrls) {
       try {
-        const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
         const response = await fetch(proxyUrl);
         if (response.ok) {
           const cssContent = await response.text();
@@ -355,6 +355,38 @@ export async function extractCSSVariables(html: string, baseUrl?: string): Promi
 export async function extractCSSVariablesByMode(html: string, baseUrl?: string): Promise<CSSVariablePalette> {
   const allVariables = await extractCSSVariables(html, baseUrl);
   return groupVariablesByMode(allVariables);
+}
+
+/**
+ * Extract CSS variables separated by mode (Sync version - legacy support)
+ */
+export function extractCSSVariablesByModeSync(html: string): CSSVariablePalette {
+  // Note: This won't fetch external stylesheets
+  const variables: CSSVariable[] = [];
+  variables.push(...extractFromInlineStyles(html));
+  
+  // Extract from style attributes
+  const styleAttrRegex = /style=["']([^"']+)["']/gi;
+  let match;
+  while ((match = styleAttrRegex.exec(html)) !== null) {
+    const styleAttr = match[1];
+    const varRegex = /--([\w-]+)\s*:\s*([^;]+)/g;
+    let varMatch;
+    while ((varMatch = varRegex.exec(styleAttr)) !== null) {
+      const name = `--${varMatch[1]}`;
+      const value = varMatch[2].trim();
+      variables.push({
+        name,
+        value,
+        originalValue: value,
+        selector: "inline-attr",
+        type: getVariableType(value),
+        source: "inline",
+      });
+    }
+  }
+  
+  return groupVariablesByMode(variables);
 }
 
 /**
