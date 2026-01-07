@@ -6,7 +6,7 @@
 import React from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
-import { useColorScheme } from "@/hooks/useColorScheme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Colors } from "@/constants/Colors";
 
 export default function PrivacyPage() {
