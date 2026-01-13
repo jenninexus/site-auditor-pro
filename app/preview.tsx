@@ -59,14 +59,28 @@ export default function PreviewPage() {
     try {
       setIsLoading(true);
       setError(null);
+      
       let stored: string | null = null;
-      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-        stored = localStorage.getItem(auditId);
-      } else {
-        stored = await AsyncStorage.getItem(auditId);
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      // Retry logic for storage access (sometimes needed on web redirects)
+      while (!stored && attempts < maxAttempts) {
+        if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+          stored = localStorage.getItem(auditId);
+        } else {
+          stored = await AsyncStorage.getItem(auditId);
+        }
+        
+        if (!stored) {
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       }
+
       if (!stored) {
-        setError("Audit result not found");
+        setError("Audit result not found. Please try running the audit again.");
+        setIsLoading(false);
         return;
       }
       const result: AuditResult = JSON.parse(stored);

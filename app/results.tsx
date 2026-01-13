@@ -1,6 +1,7 @@
 import { ScrollView, Text, View, TouchableOpacity, Platform, Alert, ActivityIndicator } from "react-native";
 import { useState, useEffect } from "react";
 import { useLocalSearchParams, router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { type AuditResult, type AuditIssue, auditWebsite } from "@/lib/audit-engine";
@@ -140,10 +141,14 @@ export default function ResultsEnhancedScreen() {
               onPress={() => {
                 const auditId = `audit_${Date.now()}`;
                 const auditData = JSON.stringify(auditResult);
-                if (Platform.OS === "web" && typeof localStorage !== "undefined") {
-                  localStorage.setItem(auditId, auditData);
+                const saveAndNavigate = async () => {
+                  if (Platform.OS === "web" && typeof localStorage !== "undefined") {
+                    localStorage.setItem(auditId, auditData);
+                  }
+                  await AsyncStorage.setItem(auditId, auditData);
                   router.push({ pathname: "/preview", params: { id: auditId } });
-                }
+                };
+                saveAndNavigate();
               }}
               className="btn-primary flex-row items-center justify-center gap-3 py-5 shadow-xl shadow-primary/30"
             >
