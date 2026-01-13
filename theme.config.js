@@ -11,4 +11,4 @@ const themeColors = {
   error: { light: '#EF4444', dark: '#ef4444' }, // Consistent error
 };
 
-module.exports = { themeColors };
+export { themeColors };
