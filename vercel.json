@@ -1,6 +1,6 @@
 {
-  "buildCommand": "mkdir -p node_modules/react-native-css-interop/.cache && touch node_modules/react-native-css-interop/.cache/web.css && pnpm install && pnpm build:web",
-  "outputDirectory": "dist-web",
+  "buildCommand": "mkdir -p node_modules/react-native-css-interop/.cache && touch node_modules/react-native-css-interop/.cache/web.css && pnpm install && npx expo export --platform web",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/((?!api).*)",

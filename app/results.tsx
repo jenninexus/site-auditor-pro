@@ -7,6 +7,8 @@ import { useColors } from "@/hooks/use-colors";
 import { type AuditResult, type AuditIssue, auditWebsite } from "@/lib/audit-engine";
 import { exportPDFReport, printPDFReport } from "@/lib/pdf-report-generator";
 import { addToHistory, getURLHistory } from "@/lib/audit-history-tracker";
+import { AnimatedNumber } from "@/components/animated-number";
+import confetti from "canvas-confetti";
 
 export default function ResultsEnhancedScreen() {
   const colors = useColors();
@@ -29,6 +31,27 @@ export default function ResultsEnhancedScreen() {
     if (auditResult) {
       loadHistory();
       addToHistory(auditResult);
+      
+      // Trigger confetti for high scores
+      if (auditResult.overallScore >= 80 && Platform.OS === 'web') {
+        const duration = 3 * 1000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+        const interval: any = setInterval(function() {
+          const timeLeft = animationEnd - Date.now();
+
+          if (timeLeft <= 0) {
+            return clearInterval(interval);
+          }
+
+          const particleCount = 50 * (timeLeft / duration);
+          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+        }, 250);
+      }
     }
   }, [auditResult?.url]);
 
@@ -123,15 +146,24 @@ export default function ResultsEnhancedScreen() {
           <View className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
             <View className="card-atmos p-8 items-center justify-center gap-2 border-b-4" style={{ borderBottomColor: getScoreColor(auditResult.overallScore) }}>
               <Text className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Overall Score</Text>
-              <Text className="text-6xl font-black" style={{ color: getScoreColor(auditResult.overallScore) }}>{Math.round(auditResult.overallScore)}</Text>
+              <AnimatedNumber 
+                value={Math.round(auditResult.overallScore)} 
+                style={{ fontSize: 60, fontWeight: '900', color: getScoreColor(auditResult.overallScore) }} 
+              />
             </View>
             <View className="card-atmos p-8 items-center justify-center gap-2 border-b-4" style={{ borderBottomColor: getScoreColor(auditResult.cssScore) }}>
               <Text className="text-sm font-bold uppercase tracking-widest text-muted-foreground">CSS Score</Text>
-              <Text className="text-6xl font-black" style={{ color: getScoreColor(auditResult.cssScore) }}>{Math.round(auditResult.cssScore)}</Text>
+              <AnimatedNumber 
+                value={Math.round(auditResult.cssScore)} 
+                style={{ fontSize: 60, fontWeight: '900', color: getScoreColor(auditResult.cssScore) }} 
+              />
             </View>
             <View className="card-atmos p-8 items-center justify-center gap-2 border-b-4" style={{ borderBottomColor: getScoreColor(auditResult.jsScore) }}>
               <Text className="text-sm font-bold uppercase tracking-widest text-muted-foreground">JS Score</Text>
-              <Text className="text-6xl font-black" style={{ color: getScoreColor(auditResult.jsScore) }}>{Math.round(auditResult.jsScore)}</Text>
+              <AnimatedNumber 
+                value={Math.round(auditResult.jsScore)} 
+                style={{ fontSize: 60, fontWeight: '900', color: getScoreColor(auditResult.jsScore) }} 
+              />
             </View>
           </View>
 
