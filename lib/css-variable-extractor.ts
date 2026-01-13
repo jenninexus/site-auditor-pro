@@ -319,7 +319,7 @@ export async function extractCSSVariables(html: string, baseUrl?: string): Promi
     // Fetch and parse each stylesheet
     for (const url of stylesheetUrls) {
       try {
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
         const response = await fetch(proxyUrl);
         if (response.ok) {
           const cssContent = await response.text();

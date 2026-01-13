@@ -4,7 +4,6 @@ import { useLocalSearchParams, router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { type AuditResult, type AuditIssue, auditWebsite } from "@/lib/audit-engine";
-import { generateAuditReport } from "@/lib/report-generator";
 import { exportPDFReport, printPDFReport } from "@/lib/pdf-report-generator";
 import { addToHistory, getURLHistory } from "@/lib/audit-history-tracker";
 
@@ -25,7 +24,6 @@ export default function ResultsEnhancedScreen() {
     console.error("Failed to parse audit result:", error);
   }
 
-  // Load history on mount
   useEffect(() => {
     if (auditResult) {
       loadHistory();
@@ -46,11 +44,8 @@ export default function ResultsEnhancedScreen() {
     if (!auditResult) return;
     setIsRefreshing(true);
     try {
-      // Re-audit with cache-busting timestamp
       const freshResult = await auditWebsite(auditResult.url, true);
       await addToHistory(freshResult);
-      
-      // Update the current audit result
       router.push({
         pathname: "/results",
         params: { auditId: JSON.stringify(freshResult) },
@@ -66,11 +61,8 @@ export default function ResultsEnhancedScreen() {
     return (
       <ScreenContainer className="p-6 items-center justify-center">
         <Text className="text-foreground text-lg">No audit data available</Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="mt-4 bg-primary px-6 py-2 rounded-full"
-        >
-          <Text className="text-background font-semibold">Go Back</Text>
+        <TouchableOpacity onPress={() => router.back()} className="btn-primary mt-4">
+          <Text className="text-white font-bold">Go Back</Text>
         </TouchableOpacity>
       </ScreenContainer>
     );
@@ -92,247 +84,127 @@ export default function ResultsEnhancedScreen() {
     return colors.error;
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return colors.error;
-      case "warning":
-        return "#F59E0B";
-      case "info":
-        return colors.muted;
-      default:
-        return colors.muted;
-    }
-  };
-
   const categories = [
-    { key: "css", label: "CSS Issues", icon: "🎨" },
-    { key: "javascript", label: "JavaScript Issues", icon: "⚙️" },
-    { key: "performance", label: "Performance", icon: "⚡" },
-    { key: "best-practice", label: "Best Practices", icon: "✓" },
+    { key: "css", label: "CSS Issues", icon: "fa-palette", color: "text-blue-500" },
+    { key: "javascript", label: "JavaScript Issues", icon: "fa-code", color: "text-yellow-500" },
+    { key: "performance", label: "Performance", icon: "fa-bolt", color: "text-green-500" },
+    { key: "best-practice", label: "Best Practices", icon: "fa-check-double", color: "text-purple-500" },
   ];
 
   return (
-    <ScreenContainer className="p-6">
+    <ScreenContainer className="p-0">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <View className="gap-6">
+        <View className="flex-1 p-6 md:p-12 max-w-5xl mx-auto w-full gap-8">
           {/* Header */}
-          <View className="gap-2">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="flex-row items-center gap-2 mb-2"
-            >
-              <Text className="text-primary text-lg">←</Text>
-              <Text className="text-primary font-semibold">Back</Text>
+          <View className="flex-row items-center justify-between animate-fade-in">
+            <TouchableOpacity onPress={() => router.back()} className="flex-row items-center gap-2">
+              <i className="fa-solid fa-arrow-left text-primary"></i>
+              <Text className="text-primary font-bold">Back to Home</Text>
             </TouchableOpacity>
-            <Text className="text-2xl font-bold text-foreground break-words">
-              {auditResult.url}
-            </Text>
-            <Text className="text-xs text-muted">
-              {new Date(auditResult.timestamp).toLocaleString()}
-            </Text>
-          </View>
-
-          {/* Improvement Badge */}
-          {improvement !== null && (
-            <View
-              className={`p-3 rounded-lg border ${
-                improvement > 0
-                  ? "bg-success/10 border-success/30"
-                  : improvement < 0
-                  ? "bg-error/10 border-error/30"
-                  : "bg-muted/10 border-muted/30"
-              }`}
-            >
-              <Text
-                className={`font-semibold text-sm ${
-                  improvement > 0
-                    ? "text-success"
-                    : improvement < 0
-                    ? "text-error"
-                    : "text-muted"
-                }`}
-              >
-                {improvement > 0 ? "📈" : improvement < 0 ? "📉" : "➡️"} {Math.abs(improvement).toFixed(1)}%{" "}
-                {improvement > 0 ? "improvement" : improvement < 0 ? "decline" : "stable"} from first audit
-              </Text>
-            </View>
-          )}
-
-          {/* Score Cards */}
-          <View className="flex-row gap-3">
-            <View className="flex-1 bg-surface rounded-xl p-4 border border-border items-center gap-2">
-              <Text className="text-xs text-muted font-semibold uppercase">Overall</Text>
-              <Text
-                className="text-3xl font-bold"
-                style={{ color: getScoreColor(auditResult.overallScore) }}
-              >
-                {Math.round(auditResult.overallScore)}
-              </Text>
-            </View>
-            <View className="flex-1 bg-surface rounded-xl p-4 border border-border items-center gap-2">
-              <Text className="text-xs text-muted font-semibold uppercase">CSS</Text>
-              <Text
-                className="text-3xl font-bold"
-                style={{ color: getScoreColor(auditResult.cssScore) }}
-              >
-                {Math.round(auditResult.cssScore)}
-              </Text>
-            </View>
-            <View className="flex-1 bg-surface rounded-xl p-4 border border-border items-center gap-2">
-              <Text className="text-xs text-muted font-semibold uppercase">JS</Text>
-              <Text
-                className="text-3xl font-bold"
-                style={{ color: getScoreColor(auditResult.jsScore) }}
-              >
-                {Math.round(auditResult.jsScore)}
-              </Text>
+            <View className="flex-row gap-3">
+              <TouchableOpacity onPress={handleRefreshAudit} disabled={isRefreshing} className="bg-secondary p-3 rounded-xl">
+                {isRefreshing ? <ActivityIndicator size="small" /> : <i className="fa-solid fa-rotate text-foreground"></i>}
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => printPDFReport(auditResult, { companyName: "Site Auditor Pro" })} className="bg-secondary p-3 rounded-xl">
+                <i className="fa-solid fa-print text-foreground"></i>
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Summary */}
-          <View className="bg-surface rounded-xl p-4 border border-border gap-2">
-            <Text className="text-sm font-semibold text-foreground">Summary</Text>
-            <View className="gap-1">
-              <Text className="text-sm text-muted">
-                Total Issues: <Text className="font-semibold text-foreground">{auditResult.summary.totalIssues}</Text>
-              </Text>
-              <Text className="text-sm text-muted">
-                Critical: <Text className="font-semibold" style={{ color: colors.error }}>
-                  {auditResult.summary.criticalCount}
-                </Text>
-              </Text>
-              <Text className="text-sm text-muted">
-                Warnings: <Text className="font-semibold" style={{ color: "#F59E0B" }}>
-                  {auditResult.summary.warningCount}
-                </Text>
-              </Text>
-              <Text className="text-sm text-muted">
-                Info: <Text className="font-semibold text-foreground">{auditResult.summary.infoCount}</Text>
-              </Text>
+          {/* Title Section */}
+          <View className="gap-2 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <Text className="text-sm font-bold uppercase tracking-widest text-primary">Audit Results</Text>
+            <Text className="text-4xl font-black text-foreground break-words">{auditResult.url}</Text>
+            <Text className="text-muted-foreground">Analyzed on {new Date(auditResult.timestamp).toLocaleString()}</Text>
+          </View>
+
+          {/* Score Overview */}
+          <View className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <View className="card-atmos p-8 items-center justify-center gap-2 border-b-4" style={{ borderBottomColor: getScoreColor(auditResult.overallScore) }}>
+              <Text className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Overall Score</Text>
+              <Text className="text-6xl font-black" style={{ color: getScoreColor(auditResult.overallScore) }}>{Math.round(auditResult.overallScore)}</Text>
+            </View>
+            <View className="card-atmos p-8 items-center justify-center gap-2 border-b-4" style={{ borderBottomColor: getScoreColor(auditResult.cssScore) }}>
+              <Text className="text-sm font-bold uppercase tracking-widest text-muted-foreground">CSS Score</Text>
+              <Text className="text-6xl font-black" style={{ color: getScoreColor(auditResult.cssScore) }}>{Math.round(auditResult.cssScore)}</Text>
+            </View>
+            <View className="card-atmos p-8 items-center justify-center gap-2 border-b-4" style={{ borderBottomColor: getScoreColor(auditResult.jsScore) }}>
+              <Text className="text-sm font-bold uppercase tracking-widest text-muted-foreground">JS Score</Text>
+              <Text className="text-6xl font-black" style={{ color: getScoreColor(auditResult.jsScore) }}>{Math.round(auditResult.jsScore)}</Text>
             </View>
           </View>
 
-          {/* Action Buttons */}
-          <View className="gap-3">
-            {/* Refresh Audit Button */}
-            <TouchableOpacity
-              onPress={handleRefreshAudit}
-              disabled={isRefreshing}
-              className="bg-cyan-600 px-6 py-3 rounded-full active:opacity-80 flex-row items-center justify-center gap-2"
-              style={{ opacity: isRefreshing ? 0.6 : 1 }}
-            >
-              {isRefreshing ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <Text className="text-white font-semibold text-center">🔄 Refresh Audit</Text>
-              )}
-            </TouchableOpacity>
-
-            {Platform.OS === "web" && (
-              <>
-                <TouchableOpacity
-                  onPress={() => {
-                    try {
-                      exportPDFReport(auditResult, { companyName: "Site Auditor Pro" });
-                      Alert.alert("Success", "Report exported as HTML. You can print it as PDF from your browser.");
-                    } catch (error) {
-                      Alert.alert("Error", "Failed to export report");
-                    }
-                  }}
-                  className="bg-blue-600 px-6 py-3 rounded-full active:opacity-80"
-                >
-                  <Text className="text-white font-semibold text-center">📄 Export as PDF</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    try {
-                      printPDFReport(auditResult, { companyName: "Site Auditor Pro" });
-                    } catch (error) {
-                      Alert.alert("Error", "Failed to print report");
-                    }
-                  }}
-                  className="bg-indigo-600 px-6 py-3 rounded-full active:opacity-80"
-                >
-                  <Text className="text-white font-semibold text-center">🖨️ Print Report</Text>
-                </TouchableOpacity>
-              </>
-            )}
-
+          {/* Main Actions */}
+          <View className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
             <TouchableOpacity
               onPress={() => {
                 const auditId = `audit_${Date.now()}`;
                 const auditData = JSON.stringify(auditResult);
-
                 if (Platform.OS === "web" && typeof localStorage !== "undefined") {
                   localStorage.setItem(auditId, auditData);
-                  router.push({
-                    pathname: "/preview",
-                    params: { id: auditId },
-                  });
-                } else {
-                  import("@react-native-async-storage/async-storage").then(({ default: AsyncStorage }) => {
-                    AsyncStorage.setItem(auditId, auditData);
-                    router.push({
-                      pathname: "/preview",
-                      params: { id: auditId },
-                    });
-                  });
+                  router.push({ pathname: "/preview", params: { id: auditId } });
                 }
               }}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3 rounded-full active:opacity-80"
+              className="btn-primary flex-row items-center justify-center gap-3 py-5 shadow-xl shadow-primary/30"
             >
-              <Text className="text-white font-semibold text-center">🎨 Preview & Customize Colors →</Text>
+              <i className="fa-solid fa-wand-magic-sparkles text-white text-xl"></i>
+              <Text className="text-white font-black text-xl">Preview & Customize Colors</Text>
+              <i className="fa-solid fa-chevron-right text-white/50"></i>
             </TouchableOpacity>
           </View>
 
-          {/* Issues List */}
-          <View className="gap-3">
-            {categories.map((category) => {
-              const categoryIssues = auditResult.issues.filter((issue: AuditIssue) => issue.category === category.key);
-              if (categoryIssues.length === 0) return null;
-
-              const isExpanded = expandedCategories.has(category.key);
-
-              return (
-                <View key={category.key} className="bg-surface rounded-xl border border-border overflow-hidden">
-                  <TouchableOpacity
-                    onPress={() => toggleCategory(category.key)}
-                    className="p-4 flex-row items-center justify-between"
-                  >
-                    <View className="flex-row items-center gap-3 flex-1">
-                      <Text className="text-xl">{category.icon}</Text>
-                      <View className="flex-1">
-                        <Text className="font-semibold text-foreground">{category.label}</Text>
-                        <Text className="text-xs text-muted">{categoryIssues.length} issues</Text>
-                      </View>
-                    </View>
-                    <Text className="text-lg text-muted">{isExpanded ? "▼" : "▶"}</Text>
-                  </TouchableOpacity>
-
-                  {isExpanded && (
-                    <View className="border-t border-border">
-                      {categoryIssues.map((issue: AuditIssue, index: number) => (
-                        <View key={index} className="p-4 border-t border-border first:border-t-0 gap-2">
-                          <View className="flex-row items-center gap-2">
-                            <View
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: getSeverityColor(issue.severity) }}
-                            />
-                            <Text className="font-semibold text-foreground flex-1">{issue.title}</Text>
-                            <Text className="text-xs font-bold text-muted uppercase">{issue.severity}</Text>
-                          </View>
-                          <Text className="text-sm text-muted">{issue.description}</Text>
-                          {issue.recommendation && (
-                            <Text className="text-xs text-success mt-2">💡 {issue.recommendation}</Text>
-                          )}
+          {/* Issues Breakdown */}
+          <View className="gap-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+            <Text className="text-2xl font-bold text-foreground">Detailed Breakdown</Text>
+            <View className="gap-4">
+              {categories.map((cat) => {
+                const issues = auditResult.issues.filter(i => i.category === cat.key);
+                const isExpanded = expandedCategories.has(cat.key);
+                return (
+                  <View key={cat.key} className="card-atmos overflow-hidden">
+                    <TouchableOpacity onPress={() => toggleCategory(cat.key)} className="p-6 flex-row items-center justify-between bg-secondary/30">
+                      <View className="flex-row items-center gap-4">
+                        <View className={`w-10 h-10 rounded-lg items-center justify-center bg-background`}>
+                          <i className={`fa-solid ${cat.icon} ${cat.color}`}></i>
                         </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              );
-            })}
+                        <Text className="text-xl font-bold text-foreground">{cat.label}</Text>
+                        <View className="bg-background px-3 py-1 rounded-full border border-border">
+                          <Text className="text-xs font-bold text-muted-foreground">{issues.length} Issues</Text>
+                        </View>
+                      </View>
+                      <i className={`fa-solid fa-chevron-${isExpanded ? 'up' : 'down'} text-muted-foreground`}></i>
+                    </TouchableOpacity>
+                    
+                    {isExpanded && (
+                      <View className="p-6 gap-4 border-t border-border">
+                        {issues.length === 0 ? (
+                          <View className="items-center py-8 gap-2">
+                            <i className="fa-solid fa-circle-check text-success text-3xl"></i>
+                            <Text className="text-muted-foreground font-bold">No issues found in this category!</Text>
+                          </View>
+                        ) : (
+                          issues.map((issue, idx) => (
+                            <View key={idx} className="p-4 bg-secondary/20 rounded-xl border-l-4" style={{ borderLeftColor: issue.severity === 'critical' ? colors.error : '#F59E0B' }}>
+                              <View className="flex-row justify-between items-start mb-2">
+                                <Text className="text-lg font-bold text-foreground flex-1">{issue.title}</Text>
+                                <View className={`px-2 py-1 rounded uppercase text-[10px] font-black ${issue.severity === 'critical' ? 'bg-error/10 text-error' : 'bg-warning/10 text-warning'}`}>
+                                  {issue.severity}
+                                </View>
+                              </View>
+                              <Text className="text-muted-foreground mb-3">{issue.description}</Text>
+                              <View className="bg-background p-3 rounded-lg border border-border">
+                                <Text className="text-xs font-bold text-primary uppercase mb-1">Recommendation</Text>
+                                <Text className="text-sm text-foreground">{issue.recommendation}</Text>
+                              </View>
+                            </View>
+                          ))
+                        )}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
           </View>
         </View>
       </ScrollView>

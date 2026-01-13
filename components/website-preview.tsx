@@ -1,29 +1,25 @@
-/**
- * Website Preview Component
- * Displays a website in an iframe with ability to inject custom CSS
- */
-
 import React, { useEffect, useRef, useState } from "react";
 import { View, ActivityIndicator, Text } from "react-native";
 
 interface WebsitePreviewProps {
   html: string;
-  url: string;
+  baseUrl: string;
   modifiedVariables?: Map<string, string>;
   className?: string;
+  onIframeLoad?: (iframe: HTMLIFrameElement) => void;
 }
 
 export function WebsitePreview({
   html,
-  url,
+  baseUrl,
   modifiedVariables,
   className = "",
+  onIframeLoad,
 }: WebsitePreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Inject custom CSS variables into the iframe
   useEffect(() => {
     if (!iframeRef.current || !modifiedVariables || modifiedVariables.size === 0) {
       return;
@@ -33,91 +29,70 @@ export function WebsitePreview({
       const iframe = iframeRef.current;
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
 
-      if (!iframeDoc) {
-        console.warn("Cannot access iframe document");
-        return;
-      }
+      if (!iframeDoc) return;
 
-      // Remove previous custom style if exists
       const existingStyle = iframeDoc.getElementById("custom-variables");
-      if (existingStyle) {
-        existingStyle.remove();
-      }
+      if (existingStyle) existingStyle.remove();
 
-      // Create new style element with modified variables
       const styleElement = iframeDoc.createElement("style");
       styleElement.id = "custom-variables";
 
-      // Generate CSS from modified variables
       const cssVariables = Array.from(modifiedVariables.entries())
-        .map(([name, value]) => `  ${name}: ${value};`)
+        .map(([name, value]) => `  ${name}: ${value} !important;`)
         .join("\n");
 
       styleElement.textContent = `:root {\n${cssVariables}\n}`;
-
-      // Inject into iframe head
       iframeDoc.head.appendChild(styleElement);
     } catch (err) {
       console.error("Failed to inject CSS:", err);
     }
   }, [modifiedVariables]);
 
-  // Handle iframe load
   const handleLoad = () => {
     setIsLoading(false);
     setError(null);
+    if (onIframeLoad && iframeRef.current) {
+      onIframeLoad(iframeRef.current);
+    }
   };
 
-  // Handle iframe error
   const handleError = () => {
     setIsLoading(false);
     setError("Failed to load preview");
   };
 
-  // Prepare HTML for iframe
   const prepareHTML = () => {
-    // Add base tag to handle relative URLs
     let modifiedHTML = html;
-
-    // Add base href if not present
     if (!html.includes("<base")) {
-      const baseTag = `<base href="${url}">`;
+      const baseTag = `<base href="${baseUrl}">`;
       modifiedHTML = html.replace("<head>", `<head>\n  ${baseTag}`);
     }
-
-    // Add meta viewport for responsive preview
     if (!html.includes("viewport")) {
       const viewportTag = `<meta name="viewport" content="width=device-width, initial-scale=1.0">`;
-      modifiedHTML = modifiedHTML.replace(
-        "<head>",
-        `<head>\n  ${viewportTag}`
-      );
+      modifiedHTML = modifiedHTML.replace("<head>", `<head>\n  ${viewportTag}`);
     }
-
     return modifiedHTML;
   };
 
   return (
-    <View className={`relative w-full h-full bg-gray-100 ${className}`}>
-      {/* Loading indicator */}
+    <View className={`relative w-full h-full bg-secondary/10 ${className}`}>
       {isLoading && (
-        <View className="absolute inset-0 flex items-center justify-center bg-white z-10">
-          <ActivityIndicator size="large" color="#0a7ea4" />
-          <Text className="mt-4 text-gray-600">Loading preview...</Text>
+        <View className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+          <ActivityIndicator size="large" color="#715BFF" />
+          <Text className="mt-4 text-muted-foreground font-bold">Rendering Preview...</Text>
         </View>
       )}
 
-      {/* Error message */}
       {error && (
-        <View className="absolute inset-0 flex items-center justify-center bg-white z-10">
-          <Text className="text-red-500 text-lg">{error}</Text>
-          <Text className="mt-2 text-gray-600">
-            The website may have security restrictions
+        <View className="absolute inset-0 flex items-center justify-center bg-background z-10 p-6">
+          <i className="fa-solid fa-shield-halved text-destructive text-4xl mb-4"></i>
+          <Text className="text-foreground font-bold text-center">{error}</Text>
+          <Text className="mt-2 text-muted-foreground text-center text-sm">
+            Security restrictions (CSP) may prevent live preview for this site.
           </Text>
         </View>
       )}
 
-      {/* Iframe preview */}
       <iframe
         ref={iframeRef}
         srcDoc={prepareHTML()}
@@ -128,24 +103,10 @@ export function WebsitePreview({
         title="Website Preview"
       />
 
-      {/* Preview overlay info */}
-      <View className="absolute top-2 left-2 bg-black/70 px-3 py-1 rounded">
-        <Text className="text-white text-xs">Live Preview</Text>
+      <View className="absolute top-4 right-4 bg-primary/90 px-4 py-2 rounded-full shadow-lg flex-row items-center gap-2">
+        <View className="w-2 h-2 rounded-full bg-white animate-pulse" />
+        <Text className="text-white text-[10px] font-black uppercase tracking-widest">Live Playground</Text>
       </View>
-    </View>
-  );
-}
-
-/**
- * Fallback preview component for when iframe fails
- */
-export function StaticPreview({ html, className = "" }: { html: string; className?: string }) {
-  return (
-    <View className={`w-full h-full bg-white overflow-auto ${className}`}>
-      <div
-        className="p-4"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
     </View>
   );
 }
