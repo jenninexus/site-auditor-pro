@@ -89,7 +89,7 @@ export function CSSVariableEditor({
           variable={variables.find((v) => v.name === selectedVariable)!}
           currentValue={getCurrentValue(variables.find((v) => v.name === selectedVariable)!)}
           onClose={() => setSelectedVariable(null)}
-          onChange={(value) => {
+          onChange={(value: string) => {
             onVariableChange(selectedVariable, value);
             setSelectedVariable(null);
           }}

@@ -112,14 +112,14 @@ export default function ResultsEnhancedScreen() {
           </View>
 
           {/* Title Section */}
-          <View className="gap-2 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <View className="gap-2 animate-fade-in">
             <Text className="text-sm font-bold uppercase tracking-widest text-primary">Audit Results</Text>
             <Text className="text-4xl font-black text-foreground break-words">{auditResult.url}</Text>
             <Text className="text-muted-foreground">Analyzed on {new Date(auditResult.timestamp).toLocaleString()}</Text>
           </View>
 
           {/* Score Overview */}
-          <View className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <View className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
             <View className="card-atmos p-8 items-center justify-center gap-2 border-b-4" style={{ borderBottomColor: getScoreColor(auditResult.overallScore) }}>
               <Text className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Overall Score</Text>
               <Text className="text-6xl font-black" style={{ color: getScoreColor(auditResult.overallScore) }}>{Math.round(auditResult.overallScore)}</Text>
@@ -135,7 +135,7 @@ export default function ResultsEnhancedScreen() {
           </View>
 
           {/* Main Actions */}
-          <View className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <View className="animate-fade-in">
             <TouchableOpacity
               onPress={() => {
                 const auditId = `audit_${Date.now()}`;
@@ -154,7 +154,7 @@ export default function ResultsEnhancedScreen() {
           </View>
 
           {/* Issues Breakdown */}
-          <View className="gap-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          <View className="gap-6 animate-fade-in">
             <Text className="text-2xl font-bold text-foreground">Detailed Breakdown</Text>
             <View className="gap-4">
               {categories.map((cat) => {

@@ -108,7 +108,7 @@ export default function HomeScreen() {
           </View>
           
           {/* Hero Section */}
-          <View className="items-center gap-4 py-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <View className="items-center gap-4 py-8 animate-fade-in">
             <Text className="text-5xl md:text-6xl font-black text-foreground text-center tracking-tighter leading-none">
               Everything you need to <Text className="text-primary">audit your site</Text>
             </Text>
@@ -127,7 +127,7 @@ export default function HomeScreen() {
           </View>
 
           {/* Input Card */}
-          <View className="w-full card-atmos p-8 gap-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <View className="w-full card-atmos p-8 gap-6 animate-fade-in">
             <View className="gap-2">
               <Text className="text-sm font-bold uppercase tracking-widest text-primary">Audit Tool</Text>
               <Text className="text-2xl font-bold text-foreground">Enter your website URL</Text>
@@ -164,7 +164,7 @@ export default function HomeScreen() {
           </View>
 
           {/* Features Grid */}
-          <View className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <View className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
             <View className="card-atmos p-6 gap-4">
               <View className="w-12 h-12 bg-blue-500/10 rounded-xl items-center justify-center">
                 <i className="fa-solid fa-palette text-blue-500 text-xl"></i>
@@ -196,7 +196,7 @@ export default function HomeScreen() {
 
           {/* Recent Audits */}
           {recentAudits.length > 0 && (
-            <View className="gap-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+            <View className="gap-6 animate-fade-in">
               <View className="flex-row items-center justify-between">
                 <Text className="text-2xl font-bold text-foreground">Recent Audits</Text>
                 <TouchableOpacity onPress={() => router.push("/history")}>

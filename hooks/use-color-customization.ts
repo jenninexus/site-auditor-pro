@@ -36,7 +36,7 @@ export function useColorCustomization() {
 
   const isModified = useCallback(
     (scheme: ColorScheme, colorName: string): boolean => {
-      return customizations[scheme][colorName] !== SchemeColors[scheme][colorName];
+      return customizations[scheme][colorName as keyof typeof SchemeColors[typeof scheme]] !== SchemeColors[scheme][colorName as keyof typeof SchemeColors[typeof scheme]];
     },
     []
   );
