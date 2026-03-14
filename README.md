@@ -14,7 +14,7 @@ Standalone Express server with an embedded glass-morphism dashboard. Analyzes 6 
 ```bash
 # Clone and start
 git clone https://github.com/jenninexus/site-auditor-pro.git
-cd site-auditor-pro   # repo rename to site-auditor pending
+cd site-auditor-pro
 npm install
 npm run dev
 

@@ -1,4 +1,4 @@
-# Site Auditor Pro — Syna Workspace Overview
+# Site Auditor — Syna Workspace Overview
 
 > **Cross-reference:** Full docs live in `C:\Github\site-auditor-pro\storage\docs\`
 > **Type:** Standalone app + optional feature panel (adapter-first)
@@ -11,7 +11,7 @@
 
 ## What It Is
 
-Site Auditor Pro is a developer utility: paste a URL, get a scored accessibility/SEO/security/performance report. It runs as a single Express server that serves both an HTML dashboard and a REST API.
+Site Auditor is a developer utility: paste a URL, get a scored accessibility/SEO/security/performance report. It runs as a single Express server that serves both an HTML dashboard and a REST API.
 
 It follows the same **standalone-first, adapter-second** pattern as fin-sig — run the app on its own, or embed it as a panel inside Synabrain/Synagen.
 
