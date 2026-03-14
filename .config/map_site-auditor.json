@@ -1,0 +1,77 @@
+{
+  "_meta": {
+    "description": "Site Auditor Pro — project identity and configuration map",
+    "version": "2.0.0",
+    "updated": "2026-03-14",
+    "location": "${SITE_AUDITOR_ROOT}\\.config\\map_site-auditor.json"
+  },
+
+  "project": {
+    "name": "site-auditor-pro",
+    "display": "Site Auditor Pro",
+    "description": "Website auditing platform — accessibility, SEO, security, and performance",
+    "version": "2.0.0",
+    "license": "MIT",
+    "github": "jenninexus/site-auditor-pro",
+    "agent_id": "site-auditor",
+    "stack": ["TypeScript", "Express 4", "Node.js 18+", "Vitest", "tsx"],
+    "owner": "Jenni",
+    "machine": "SEGOPC"
+  },
+
+  "service": {
+    "port": 3847,
+    "env_var": "SITE_AUDITOR_PORT",
+    "entry": "src/server.ts",
+    "start_dev": "npm run dev",
+    "start_prod": "npm start",
+    "host": "localhost",
+    "rate_limit": "10 audits/min per IP"
+  },
+
+  "routes": {
+    "GET /": "src/dashboard.html — main audit UI",
+    "GET /pitch": "src/pitch.html — marketing pitch page",
+    "GET /api": "API index + capabilities",
+    "GET /api/health": "uptime, version, server info",
+    "POST /api/audit": "runs full audit (body: { url: string })",
+    "POST /api/export/csv": "export audit results as CSV",
+    "POST /api/export/json": "export audit results as JSON download"
+  },
+
+  "paths": {
+    "root": "${SITE_AUDITOR_ROOT}",
+    "src": "${SITE_AUDITOR_ROOT}\\src",
+    "analyzers": "${SITE_AUDITOR_ROOT}\\src\\analyzers",
+    "dashboard": "${SITE_AUDITOR_ROOT}\\src\\dashboard.html",
+    "pitch": "${SITE_AUDITOR_ROOT}\\src\\pitch.html",
+    "tests": "${SITE_AUDITOR_ROOT}\\tests",
+    "storage": "${SITE_AUDITOR_ROOT}\\storage",
+    "docs": "${SITE_AUDITOR_ROOT}\\storage\\docs",
+    "config": "${SITE_AUDITOR_ROOT}\\.config",
+    "claude_md": "${SITE_AUDITOR_ROOT}\\.claude\\CLAUDE.md"
+  },
+
+  "analyzers": {
+    "audit-engine": "Orchestrates all analyzers, aggregates 0-100 scores per category + overall",
+    "contrast": "WCAG 2.1 AA/AAA contrast ratio — light + dark mode, hex fix suggestions",
+    "seo": "Title, meta description, headings, alt text, Open Graph, structured data",
+    "security": "CSP, HSTS, X-Frame-Options, HTTPS redirect, Content-Type-Options, Referrer-Policy",
+    "performance": "Page weight, asset count, render-blocking resources, compression, lazy loading"
+  },
+
+  "docs": {
+    "pitch_deck": "${SITE_AUDITOR_ROOT}\\storage\\docs\\PITCH_DECK.md",
+    "plan": "${SITE_AUDITOR_ROOT}\\storage\\docs\\SITE-AUDITOR-PLAN.md",
+    "readme": "${SITE_AUDITOR_ROOT}\\README.md",
+    "claude_md": "${SITE_AUDITOR_ROOT}\\.claude\\CLAUDE.md",
+    "optional_features": "${OPTIONAL_FEATURES_ROOT}\\docs\\SITE-AUDITOR.md"
+  },
+
+  "cross_ref": {
+    "portmap": "${MCP_ROOT}\\.config\\mcp_portmap.json → node_services.3847",
+    "skills_registry": "${PC_NETWORK_ROOT}\\.claude\\skills-registry.yaml → project_skills.site-auditor",
+    "plugins": "${PC_NETWORK_ROOT}\\.claude\\plugins.yaml → pending_install.{railway,firecrawl,postman}",
+    "mcp_claude": "${MCP_ROOT}\\.config\\mcp_claude.json → skill_categories.projects"
+  }
+}

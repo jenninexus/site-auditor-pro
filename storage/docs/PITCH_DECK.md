@@ -1,10 +1,17 @@
-# Site Auditor Pro — Pitch Deck
+# Site Auditor — Pitch Deck
+
+> **v2.0** — Redesigned as a standalone Express server + single-file dashboard. Same analysis engine (150+ tests), no Expo/React Native, no Vercel required.
+> Architecture mirrors `fin-sig`: one process, one port (`$SITE_AUDITOR_PORT`), embedded HTML dashboard served from `/`.
+> This doc is served live at `/pitch` on the running server.
+
+---
 
 ## The Problem
 
 Most website auditing tools only check light mode, provide vague advice like "improve contrast," and don't let you see or test fixes before implementing them. With dark mode becoming standard, this leaves critical accessibility issues undetected.
 
 **Key Pain Points:**
+
 - ❌ Only analyze light mode (miss 50% of accessibility issues)
 - ❌ Vague recommendations ("improve contrast" without specifics)
 - ❌ No way to preview fixes before implementation
@@ -18,18 +25,23 @@ Most website auditing tools only check light mode, provide vague advice like "im
 Site Auditor Pro is the **first and only** free tool that:
 
 ### ✅ Analyzes Both Light AND Dark Modes
+
 Catches issues other tools miss by testing both color schemes simultaneously
 
 ### ✅ Provides Specific Color Alternatives
+
 Not vague advice — actual hex codes with 3 alternatives per issue
 
 ### ✅ Lets You Customize and Preview
+
 See changes before committing with live website preview
 
 ### ✅ Understands Modern Frameworks
+
 Bootstrap, Tailwind, custom CSS variables — works with real-world websites
 
 ### ✅ Exports Ready-to-Use Code
+
 Copy-paste fixes, no guesswork
 
 ---
@@ -61,11 +73,13 @@ Copy-paste fixes, no guesswork
 ### 🌓 Dual-Mode Contrast Analysis (UNIQUE!)
 
 **Competitors:**
+
 - Only check light mode
 - Miss dark mode accessibility issues
 - Provide generic "improve contrast" advice
 
 **Site Auditor Pro:**
+
 - Analyze BOTH light and dark modes simultaneously
 - Detect Bootstrap, Tailwind, and media query patterns
 - Provide 3 specific color alternatives with exact hex codes
@@ -78,11 +92,13 @@ Copy-paste fixes, no guesswork
 ### 🎨 Live Preview & Customization (UNIQUE!)
 
 **Competitors:**
+
 - Show static reports
 - Make you implement changes blind
 - No way to test before committing
 
 **Site Auditor Pro:**
+
 - Live website preview with real-time updates
 - Extract and edit CSS variables with color pickers
 - Separate light/dark mode editors
@@ -95,11 +111,13 @@ Copy-paste fixes, no guesswork
 ### 🚀 Framework-Aware Detection (UNIQUE!)
 
 **Competitors:**
+
 - Generic CSS parsing
 - Miss framework-specific patterns
 - Can't export framework-compatible code
 
 **Site Auditor Pro:**
+
 - Detect Bootstrap `--bs-*` variables
 - Understand Tailwind dark mode classes
 - Parse CSS custom properties
@@ -112,6 +130,7 @@ Copy-paste fixes, no guesswork
 ## Business Model
 
 ### Current: Free & Open Source
+
 - Build user base and community
 - Gather feedback and improve product
 - Establish market presence
@@ -119,17 +138,20 @@ Copy-paste fixes, no guesswork
 ### Future Revenue Streams
 
 **Freemium Model:**
+
 - Free: Basic audits, limited exports
 - Pro ($19/month): Unlimited audits, all export formats, API access
 - Team ($49/month): Collaboration features, shared reports, white-label
 
 **Enterprise:**
+
 - Custom pricing for large organizations
 - On-premise deployment
 - Priority support
 - Custom integrations
 
 **API Access:**
+
 - $0.10 per audit for programmatic access
 - CI/CD integration
 - Automated monitoring
@@ -181,28 +203,67 @@ Copy-paste fixes, no guesswork
 ## Traction & Metrics
 
 ### Current Status
+
 - ✅ Live production app deployed
 - ✅ Open source on GitHub
 - ✅ Product Hunt launch prepared
 - ✅ 10/10 features fully functional
 
 ### Target Metrics (3 Months)
+
 - 10,000 website audits performed
 - 1,000 monthly active users
 - 100 GitHub stars
 - 50 community contributions
 
 ### Target Metrics (12 Months)
+
 - 100,000 website audits performed
 - 10,000 monthly active users
 - 1,000 GitHub stars
-- 500 paying customers (Pro tier)
+- 500 contributors + power users
+
+---
+
+## Architecture: Standalone + Optional Panel
+
+Site Auditor follows the same **standalone-first** pattern as fin-sig: the core product is completely self-contained and valuable on its own. An optional adapter layer lets it surface inside Synabrain or Synagen.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  site-auditor (standalone)                                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
+│  │  Analyzers   │  │  Audit       │  │  Express             │   │
+│  │  (150+ tests)│→ │  Engine      │→ │  :$SITE_AUDITOR_PORT │   │
+│  └──────────────┘  └──────────────┘  └──────────┬───────────┘   │
+│                                                   │              │
+└───────────────────────────────────────────────────┼──────────────┘
+                                                    │
+         ┌──────────────────────────────────────────┤
+         │  REST API (read + audit)                 │
+         ▼                                          ▼
+┌─────────────────┐                      ┌─────────────────────┐
+│ Synabrain Panel │                      │   /pitch page       │
+│ (optional)      │                      │   (marketing page)  │
+└─────────────────┘                      └─────────────────────┘
+```
+
+### How It Differs from fin-sig
+
+|                 | Site Auditor                | fin-sig                                |
+| --------------- | --------------------------- | -------------------------------------- |
+| Language        | Node / TypeScript           | Python / FastAPI                       |
+| Data model      | Stateless (audit on demand) | Stateful (accumulated filings)         |
+| Panel type      | Audit trigger → score cards | Read-only research surface             |
+| Host complexity | Low — just POST a URL       | Medium — depends on server having data |
+| Pitch page      | `/pitch` (built-in route)   | Separate landing page (Phase 2.5)      |
 
 ---
 
 ## Go-to-Market Strategy
 
 ### Phase 1: Community Building (Months 1-3)
+
 - Launch on Product Hunt
 - Share on Reddit (r/webdev, r/frontend, r/accessibility)
 - Post on Twitter, LinkedIn, Dev.to
@@ -210,6 +271,7 @@ Copy-paste fixes, no guesswork
 - Gather feedback and iterate
 
 ### Phase 2: Content Marketing (Months 4-6)
+
 - Blog posts on accessibility best practices
 - Video tutorials and demos
 - Case studies from early users
@@ -217,43 +279,41 @@ Copy-paste fixes, no guesswork
 - Guest posts on dev blogs
 
 ### Phase 3: Partnership & Integration (Months 7-12)
+
 - Integrate with popular dev tools (VS Code, GitHub Actions)
+- Optional feature panel: Synabrain + Synagen integration
 - Partner with accessibility organizations
-- Speak at conferences
-- Launch Pro tier
-- Build API for programmatic access
+- Launch Pro tier / API access
 
 ---
 
 ## Roadmap
 
-### Q1 2026 (Current)
-- ✅ Core auditing features
-- ✅ Dual-mode contrast analysis
-- ✅ Live preview & customization
-- ✅ Framework detection
-- ✅ Product Hunt launch
+### Q1 2026 (Current — v2.0 Redesign)
+
+- ✅ Core auditing features (150+ tests)
+- ✅ Dual-mode contrast analysis (light + dark)
+- ✅ Framework detection (Bootstrap, Tailwind)
+- ✅ Export: CSS, JSON, SCSS, Tailwind tokens
+- ✅ Express server + single-file dashboard
+- 🔲 SEO audit (new)
+- 🔲 Security headers audit (new)
+- 🔲 Performance audit (enhanced)
+- ✅ `/pitch` marketing page (linked from footer)
+- 🔲 Optional feature panel for Synabrain
 
 ### Q2 2026
-- Browser extension (Chrome, Firefox)
+
+- CI/CD integration (GitHub Actions)
+- Scheduled / monitored audits (diff over time)
 - VS Code extension
-- Automated monitoring (scheduled audits)
-- Team collaboration features
-- API access (beta)
+- Public API with rate limiting
 
 ### Q3 2026
-- CI/CD integrations (GitHub Actions, GitLab CI)
-- White-label reports
-- Custom branding
-- Advanced analytics
-- Pro tier launch
 
-### Q4 2026
-- Mobile app (iOS, Android)
-- Enterprise features
-- On-premise deployment
-- Priority support
-- Partner program
+- White-label reports
+- Team collaboration (shared history)
+- Pro tier launch
 
 ---
 
@@ -262,21 +322,25 @@ Copy-paste fixes, no guesswork
 ### Market Timing
 
 **Accessibility Regulations Increasing:**
+
 - ADA lawsuits up 300% since 2018
 - EU Accessibility Act (2025)
 - WCAG 2.2 adoption growing
 
 **Dark Mode Adoption:**
+
 - 82% of users prefer dark mode
 - Major platforms (iOS, Android, Windows) default to dark
 - Accessibility testing must include both modes
 
 **Framework Proliferation:**
+
 - Bootstrap, Tailwind dominate the market
 - CSS custom properties widely adopted
 - Tools need to understand modern frameworks
 
 **Developer Demand:**
+
 - 67% of developers say accessibility is important
 - 45% lack proper tools
 - Manual auditing is time-consuming
@@ -285,24 +349,26 @@ Copy-paste fixes, no guesswork
 
 ## Team
 
-**Current:** Solo founder with full-stack development expertise
+**Current:** Solo founder with full-stack TypeScript + accessibility expertise
 
-**Needed:**
-- Marketing/Growth lead
-- Accessibility expert/advisor
-- DevRel/Community manager
+**Advisors / Community Needed:**
+
+- Accessibility standards expert
+- Developer relations / community lead
 
 ---
 
 ## Ask
 
 ### Immediate Needs
+
 - User feedback and beta testing
 - Community engagement and promotion
 - Technical contributions (open source)
 - Partnership opportunities
 
 ### Future Needs (6-12 months)
+
 - Seed funding ($250K-$500K)
 - Strategic partnerships
 - Advisory board members

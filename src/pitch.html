@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Site Auditor — Catch More. Fix Faster. Ship Better.</title>
+    <meta
+      name="description"
+      content="The free, open-source website auditor that checks light AND dark mode, gives you exact hex fix codes, and exports ready-to-use CSS."
+    />
+    <meta
+      property="og:title"
+      content="Site Auditor — Catch More. Fix Faster. Ship Better."
+    />
+    <meta
+      property="og:description"
+      content="Dual-mode contrast, SEO, security, and performance audits in one pass. Free and open source."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#4de8ff" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── Syna Design Tokens ── */
+      :root {
+        --bg-base: #06060d;
+        --bg-mid: #0d0d18;
+        --bg-surface: #111120;
+        --bg-elevated: #16162a;
+        --bg-hover: #1c1c30;
+
+        --accent-cyan: #4de8ff;
+        --accent-purple: #b4a8ff;
+        --accent-rose: #ff6b9d;
+        --accent-amber: #ffd06b;
+
+        --text-primary: #f0eff8;
+        --text-secondary: #cbc8de;
+        --text-tertiary: #8e8aaa;
+        --text-muted: #5a5878;
+
+        --status-pass: #5ee89c;
+        --status-warn: #fcd34d;
+        --status-fail: #ff9494;
+
+        --glass-panel: rgba(6, 6, 13, 0.7);
+        --glass-card: rgba(13, 13, 24, 0.65);
+        --glass-border: rgba(180, 168, 255, 0.1);
+        --glass-border-h: rgba(77, 232, 255, 0.2);
+
+        --radius-panel: 18px;
+        --radius-card: 12px;
+        --radius-btn: 8px;
+
+        --shadow-panel:
+          0 8px 40px rgba(6, 6, 13, 0.6), 0 2px 8px rgba(6, 6, 13, 0.4);
+        --shadow-lift:
+          0 4px 20px rgba(77, 232, 255, 0.08), 0 1px 4px rgba(6, 6, 13, 0.5);
+        --shadow-glow-c: 0 0 30px rgba(77, 232, 255, 0.15);
+        --shadow-glow-p: 0 0 30px rgba(180, 168, 255, 0.15);
+
+        --motion-snappy: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        --motion-bouncy: 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        --motion-gentle: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+        --font-main: "Outfit", system-ui, sans-serif;
+        --font-mono: "Space Mono", monospace;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--bg-base);
+        color: var(--text-primary);
+        font-family: var(--font-main);
+        line-height: 1.6;
+        overflow-x: hidden;
+      }
+
+      /* ── Nav ── */
+      .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.875rem 2rem;
+        background: var(--glass-panel);
+        backdrop-filter: blur(18px);
+        border-bottom: 1px solid var(--glass-border);
+      }
+      .nav-brand {
+        font-size: 1.125rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .nav-brand .dot {
+        color: var(--accent-cyan);
+      }
+      .nav-links {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+      }
+      .nav-links a {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: color var(--motion-snappy);
+      }
+      .nav-links a:hover {
+        color: var(--text-primary);
+      }
+      .nav-cta {
+        background: linear-gradient(
+          135deg,
+          var(--accent-cyan),
+          var(--accent-purple)
+        );
+        color: var(--bg-base) !important;
+        font-weight: 600 !important;
+        padding: 0.4rem 1rem;
+        border-radius: var(--radius-btn);
+      }
+      .nav-cta:hover {
+        opacity: 0.9;
+      }
+
+      /* ── Back link ── */
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.8125rem;
+        color: var(--text-tertiary);
+        text-decoration: none;
+        transition: color var(--motion-snappy);
+      }
+      .back-link:hover {
+        color: var(--accent-cyan);
+      }
+
+      /* ── Sections ── */
+      section {
+        padding: 5rem 2rem;
+      }
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      /* ── Hero ── */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 8rem 2rem 5rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 60% 50% at 30% 40%,
+            rgba(77, 232, 255, 0.07) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 50% 60% at 70% 60%,
+            rgba(180, 168, 255, 0.06) 0%,
+            transparent 60%
+          );
+        pointer-events: none;
+      }
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent-cyan);
+        background: rgba(77, 232, 255, 0.08);
+        border: 1px solid rgba(77, 232, 255, 0.18);
+        border-radius: 100px;
+        padding: 0.3rem 0.875rem;
+        margin-bottom: 1.5rem;
+      }
+      .hero h1 {
+        font-size: clamp(2.5rem, 7vw, 5rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+        margin-bottom: 1.25rem;
+        background: linear-gradient(
+          135deg,
+          var(--text-primary) 40%,
+          var(--accent-cyan) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .hero-tagline {
+        font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+        font-weight: 400;
+      }
+      .hero-sub {
+        font-size: 1rem;
+        color: var(--text-tertiary);
+        max-width: 560px;
+        margin: 0 auto 2.5rem;
+      }
+      .hero-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.625rem;
+        border-radius: var(--radius-btn);
+        font-family: var(--font-main);
+        font-size: 0.9375rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all var(--motion-bouncy);
+      }
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--accent-cyan),
+          var(--accent-purple)
+        );
+        color: var(--bg-base);
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-glow-c);
+      }
+      .btn-secondary {
+        background: transparent;
+        color: var(--text-secondary);
+        border: 1px solid var(--glass-border);
+      }
+      .btn-secondary:hover {
+        border-color: var(--glass-border-h);
+        color: var(--text-primary);
+        transform: translateY(-1px);
+      }
+
+      /* ── Section headings ── */
+      .section-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent-purple);
+        margin-bottom: 0.75rem;
+      }
+      .section-title {
+        font-size: clamp(1.75rem, 4vw, 2.75rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 1rem;
+      }
+      .section-desc {
+        font-size: 1.0625rem;
+        color: var(--text-secondary);
+        max-width: 640px;
+        margin-bottom: 3rem;
+      }
+
+      /* ── Glass card ── */
+      .card {
+        background: var(--glass-card);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-card);
+        backdrop-filter: blur(12px);
+        padding: 1.75rem;
+        transition:
+          border-color var(--motion-snappy),
+          box-shadow var(--motion-snappy);
+      }
+      .card:hover {
+        border-color: var(--glass-border-h);
+        box-shadow: var(--shadow-lift);
+      }
+
+      /* ── Problem section ── */
+      .problem-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+      }
+      .problem-card .icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        display: block;
+      }
+      .problem-card h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+      .problem-card p {
+        font-size: 0.9375rem;
+        color: var(--text-secondary);
+      }
+      .problem-card .tag {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.2rem 0.625rem;
+        border-radius: 100px;
+        background: rgba(255, 148, 148, 0.1);
+        color: var(--status-fail);
+        border: 1px solid rgba(255, 148, 148, 0.2);
+        margin-bottom: 0.875rem;
+      }
+
+      /* ── Solution ── */
+      .solution-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+      }
+      .solution-card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.375rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .solution-card h3 .check {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: rgba(94, 232, 156, 0.12);
+        color: var(--status-pass);
+        font-size: 0.75rem;
+        flex-shrink: 0;
+      }
+      .solution-card p {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+      }
+
+      /* ── How it works ── */
+      .steps {
+        display: flex;
+        gap: 0;
+        align-items: stretch;
+        counter-reset: step;
+      }
+      .step {
+        flex: 1;
+        position: relative;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        background: var(--glass-card);
+        border: 1px solid var(--glass-border);
+      }
+      .step:first-child {
+        border-radius: var(--radius-card) 0 0 var(--radius-card);
+      }
+      .step:last-child {
+        border-radius: 0 var(--radius-card) var(--radius-card) 0;
+      }
+      .step + .step {
+        border-left: none;
+      }
+      .step-num {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
+      }
+      .step h3 {
+        font-size: 1.0625rem;
+        font-weight: 600;
+        margin-bottom: 0.375rem;
+      }
+      .step p {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+      }
+      .step-arrow {
+        position: absolute;
+        right: -1px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-top: 14px solid transparent;
+        border-bottom: 14px solid transparent;
+        border-left: 14px solid var(--accent-cyan);
+        opacity: 0.35;
+        z-index: 1;
+      }
+      .step:last-child .step-arrow {
+        display: none;
+      }
+
+      /* ── Comparison table ── */
+      .compare-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+      .compare-table th {
+        text-align: left;
+        padding: 0.75rem 1rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--text-tertiary);
+        border-bottom: 1px solid var(--glass-border);
+        letter-spacing: 0.04em;
+      }
+      .compare-table th.us {
+        color: var(--accent-cyan);
+      }
+      .compare-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        color: var(--text-secondary);
+      }
+      .compare-table td:first-child {
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+      .compare-table .yes {
+        color: var(--status-pass);
+        font-weight: 600;
+      }
+      .compare-table .no {
+        color: var(--status-fail);
+      }
+      .compare-table .partial {
+        color: var(--status-warn);
+      }
+      .compare-table tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      /* ── Score demo ── */
+      .score-demo {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 1rem;
+        text-align: center;
+      }
+      .score-item {
+        background: var(--glass-card);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-card);
+        padding: 1.25rem 0.75rem;
+      }
+      .score-val {
+        font-size: 2rem;
+        font-weight: 800;
+        font-family: var(--font-mono);
+        letter-spacing: -0.04em;
+        background: linear-gradient(
+          135deg,
+          var(--accent-cyan),
+          var(--accent-purple)
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .score-label {
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+        margin-top: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      /* ── Open source CTA ── */
+      .oss-block {
+        background: linear-gradient(
+          135deg,
+          rgba(77, 232, 255, 0.06),
+          rgba(180, 168, 255, 0.06)
+        );
+        border: 1px solid var(--glass-border-h);
+        border-radius: var(--radius-panel);
+        padding: 3.5rem 2rem;
+        text-align: center;
+      }
+      .oss-block h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.75rem;
+      }
+      .oss-block p {
+        color: var(--text-secondary);
+        font-size: 1.0625rem;
+        margin-bottom: 2rem;
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* ── Costs ── */
+      .cost-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        font-size: 0.9375rem;
+      }
+      .cost-row:last-child {
+        border-bottom: none;
+      }
+      .cost-val {
+        font-family: var(--font-mono);
+        font-size: 0.875rem;
+        color: var(--accent-cyan);
+        font-weight: 700;
+      }
+
+      /* ── Footer ── */
+      footer {
+        padding: 3rem 2rem;
+        border-top: 1px solid var(--glass-border);
+        text-align: center;
+      }
+      footer .footer-links {
+        display: flex;
+        gap: 2rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+      }
+      footer a {
+        font-size: 0.875rem;
+        color: var(--text-tertiary);
+        text-decoration: none;
+        transition: color var(--motion-snappy);
+      }
+      footer a:hover {
+        color: var(--accent-cyan);
+      }
+      footer .copy {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+      }
+      footer .copy code {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        background: var(--bg-mid);
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+        color: var(--text-tertiary);
+      }
+
+      /* ── Divider ── */
+      .divider {
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--glass-border),
+          transparent
+        );
+        margin: 0 2rem;
+      }
+
+      @media (max-width: 640px) {
+        .steps {
+          flex-direction: column;
+        }
+        .step {
+          border-radius: 0 !important;
+          border-left: 1px solid var(--glass-border) !important;
+          border-bottom: none;
+        }
+        .step:first-child {
+          border-radius: var(--radius-card) var(--radius-card) 0 0 !important;
+        }
+        .step:last-child {
+          border-radius: 0 0 var(--radius-card) var(--radius-card) !important;
+          border-bottom: 1px solid var(--glass-border) !important;
+        }
+        .step-arrow {
+          display: none;
+        }
+        nav .nav-links {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ── Nav ──────────────────────────────────────────────── -->
+    <nav class="nav">
+      <a href="/" class="nav-brand">site<span class="dot">.</span>auditor</a>
+      <div class="nav-links">
+        <a href="#problem">Problem</a>
+        <a href="#solution">Features</a>
+        <a href="#compare">Compare</a>
+        <a href="#cost">Costs</a>
+        <a
+          href="/"
+          class="btn btn-primary nav-cta"
+          style="padding: 0.35rem 0.875rem; font-size: 0.875rem"
+          >Audit a Site →</a
+        >
+      </div>
+    </nav>
+
+    <!-- ── Hero ─────────────────────────────────────────────── -->
+    <section class="hero">
+      <div style="position: relative; z-index: 1">
+        <div class="hero-badge">✦ Free &amp; Open Source</div>
+        <h1>Catch More.<br />Fix Faster.<br />Ship Better.</h1>
+        <p class="hero-tagline">
+          Website auditing that actually shows you the fix.
+        </p>
+        <p class="hero-sub">
+          Dual-mode contrast, SEO, security headers, and performance — all in
+          one server-side pass. Get exact hex codes, export-ready CSS, and a
+          score you can act on.
+        </p>
+        <div class="hero-actions">
+          <a href="/" class="btn btn-primary">→ Open Dashboard</a>
+          <a
+            href="https://github.com/jenninexus/site-auditor-pro"
+            class="btn btn-secondary"
+            target="_blank"
+            rel="noopener"
+            >★ GitHub</a
+          >
+        </div>
+        <div
+          class="score-demo"
+          style="
+            margin-top: 3rem;
+            max-width: 680px;
+            margin-left: auto;
+            margin-right: auto;
+          "
+        >
+          <div class="score-item">
+            <div class="score-val">78</div>
+            <div class="score-label">Overall</div>
+          </div>
+          <div class="score-item">
+            <div class="score-val">85</div>
+            <div class="score-label">CSS</div>
+          </div>
+          <div class="score-item">
+            <div class="score-val">90</div>
+            <div class="score-label">JS</div>
+          </div>
+          <div class="score-item">
+            <div class="score-val">72</div>
+            <div class="score-label">A11y</div>
+          </div>
+          <div class="score-item">
+            <div class="score-val">65</div>
+            <div class="score-label">SEO</div>
+          </div>
+          <div class="score-item">
+            <div class="score-val">80</div>
+            <div class="score-label">Security</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ── Problem ───────────────────────────────────────────── -->
+    <section id="problem">
+      <div class="container">
+        <div class="section-label">The Problem</div>
+        <h2 class="section-title">Other tools leave you guessing.</h2>
+        <p class="section-desc">
+          Every existing auditing tool has the same three blind spots. We fix
+          all of them.
+        </p>
+        <div class="problem-grid">
+          <div class="card problem-card">
+            <span class="icon">🌓</span>
+            <span class="tag">BLIND SPOT</span>
+            <h3>Light-mode only</h3>
+            <p>
+              82% of users prefer dark mode. Yet every major auditing tool tests
+              contrast in light mode only — missing half your accessibility
+              issues before you even start.
+            </p>
+          </div>
+          <div class="card problem-card">
+            <span class="icon">🎨</span>
+            <span class="tag">BLIND SPOT</span>
+            <h3>Vague recommendations</h3>
+            <p>
+              "Improve contrast ratio." Thanks. But which color? By how much?
+              With which alternative that still matches our brand? You're left
+              with trial and error.
+            </p>
+          </div>
+          <div class="card problem-card">
+            <span class="icon">🚢</span>
+            <span class="tag">BLIND SPOT</span>
+            <h3>Ship blind</h3>
+            <p>
+              Static reports with no preview. You implement the fix, reload,
+              audit again, repeat. There's no way to see if a suggested change
+              actually works before you ship it.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ── Solution ──────────────────────────────────────────── -->
+    <section id="solution">
+      <div class="container">
+        <div class="section-label">Our Solution</div>
+        <h2 class="section-title">Six audits. One pass. Exact fixes.</h2>
+        <p class="section-desc">
+          Site Auditor runs your URL through six parallel analyzers server-side
+          — no CORS proxy, no extension, no browser needed.
+        </p>
+        <div class="solution-grid">
+          <div class="card solution-card">
+            <h3><span class="check">✓</span> Dual-Mode Contrast</h3>
+            <p>
+              Light AND dark mode simultaneously. Bootstrap, Tailwind, CSS
+              custom properties — detected automatically.
+            </p>
+          </div>
+          <div class="card solution-card">
+            <h3><span class="check">✓</span> Exact Hex Fixes</h3>
+            <p>
+              Three alternatives per violation. Not "improve contrast" — actual
+              hex codes with WCAG AA/AAA compliance pre-checked.
+            </p>
+          </div>
+          <div class="card solution-card">
+            <h3><span class="check">✓</span> SEO Audit</h3>
+            <p>
+              Title, meta description, heading hierarchy, OG tags, canonical,
+              structured data. One click, full SEO health report.
+            </p>
+          </div>
+          <div class="card solution-card">
+            <h3><span class="check">✓</span> Security Headers</h3>
+            <p>
+              CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy.
+              See exactly which headers are missing.
+            </p>
+          </div>
+          <div class="card solution-card">
+            <h3><span class="check">✓</span> Performance Hints</h3>
+            <p>
+              Page weight, render-blocking resources, image optimization,
+              compression, cache headers — all in one pass.
+            </p>
+          </div>
+          <div class="card solution-card">
+            <h3><span class="check">✓</span> Export-Ready Code</h3>
+            <p>
+              CSS variables, JSON design tokens, SCSS, Tailwind config.
+              Copy-paste into your project immediately.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ── How it works ──────────────────────────────────────── -->
+    <section id="how">
+      <div class="container">
+        <div class="section-label">How It Works</div>
+        <h2 class="section-title">Three steps. Under 10 seconds.</h2>
+        <p class="section-desc" style="margin-bottom: 2rem">
+          The server fetches your page directly — no browser extension, no CORS
+          setup, no API key.
+        </p>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">01</div>
+            <h3>Enter URL</h3>
+            <p>
+              Paste any public URL into the audit bar. Works on staging,
+              production, or any accessible domain.
+            </p>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step">
+            <div class="step-num">02</div>
+            <h3>Server Audits</h3>
+            <p>
+              Node.js fetches the page, parses HTML/CSS/JS, runs 150+ tests
+              across 6 categories in parallel.
+            </p>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step">
+            <div class="step-num">03</div>
+            <h3>Fix It</h3>
+            <p>
+              Browse issues by category and severity. Get specific fixes with
+              code snippets. Export when ready.
+            </p>
+            <div class="step-arrow"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ── Compare ───────────────────────────────────────────── -->
+    <section id="compare">
+      <div class="container">
+        <div class="section-label">Comparison</div>
+        <h2 class="section-title">How we stack up.</h2>
+        <p class="section-desc" style="margin-bottom: 2rem">
+          Most tools check one thing well. Site Auditor checks everything that
+          matters, in one server-side pass.
+        </p>
+        <div class="card" style="padding: 0; overflow: hidden">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th class="us">Site Auditor</th>
+                <th>WebAIM</th>
+                <th>WAVE</th>
+                <th>Lighthouse</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Light mode contrast</td>
+                <td class="yes">✓</td>
+                <td class="yes">✓</td>
+                <td class="yes">✓</td>
+                <td class="partial">Partial</td>
+              </tr>
+              <tr>
+                <td>Dark mode contrast</td>
+                <td class="yes">✓</td>
+                <td class="no">✗</td>
+                <td class="no">✗</td>
+                <td class="no">✗</td>
+              </tr>
+              <tr>
+                <td>Exact hex fix codes</td>
+                <td class="yes">✓</td>
+                <td class="no">✗</td>
+                <td class="no">✗</td>
+                <td class="no">✗</td>
+              </tr>
+              <tr>
+                <td>Bootstrap/Tailwind aware</td>
+                <td class="yes">✓</td>
+                <td class="no">✗</td>
+                <td class="no">✗</td>
+                <td class="no">✗</td>
+              </tr>
+              <tr>
+                <td>SEO audit</td>
+                <td class="yes">✓</td>
+                <td class="no">✗</td>
+                <td class="no">✗</td>
+                <td class="yes">✓</td>
+              </tr>
+              <tr>
+                <td>Security headers</td>
+                <td class="yes">✓</td>
+                <td class="no">✗</td>
+                <td class="no">✗</td>
+                <td class="partial">Partial</td>
+              </tr>
+              <tr>
+                <td>Export CSS/JSON/SCSS</td>
+                <td class="yes">✓</td>
+                <td class="no">✗</td>
+                <td class="no">✗</td>
+                <td class="no">✗</td>
+              </tr>
+              <tr>
+                <td>Server-side (no extension)</td>
+                <td class="yes">✓</td>
+                <td class="yes">✓</td>
+                <td class="no">Extension</td>
+                <td class="no">DevTools</td>
+              </tr>
+              <tr>
+                <td>Free &amp; open source</td>
+                <td class="yes">✓</td>
+                <td class="yes">✓</td>
+                <td class="yes">✓</td>
+                <td class="yes">✓</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ── Cost ──────────────────────────────────────────────── -->
+    <section id="cost">
+      <div class="container" style="max-width: 640px">
+        <div class="section-label">Running Costs</div>
+        <h2 class="section-title">$0 to run locally.</h2>
+        <p class="section-desc">
+          Site Auditor is stateless — no database, no persistent services, no
+          ongoing pipeline. Every audit is an isolated fetch.
+        </p>
+        <div class="card">
+          <div class="cost-row">
+            <span>Local development</span>
+            <span class="cost-val">$0 / mo</span>
+          </div>
+          <div class="cost-row">
+            <span>Self-hosted (Railway / Fly.io)</span>
+            <span class="cost-val">$5–7 / mo</span>
+          </div>
+          <div class="cost-row">
+            <span>Domain (optional)</span>
+            <span class="cost-val">$1 / mo</span>
+          </div>
+          <div
+            class="cost-row"
+            style="
+              margin-top: 0.5rem;
+              padding-top: 1rem;
+              border-top: 1px solid var(--glass-border);
+            "
+          >
+            <strong>Total to go live</strong>
+            <span class="cost-val" style="font-size: 1.125rem">$6–8 / mo</span>
+          </div>
+        </div>
+        <p
+          style="
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 1rem;
+          "
+        >
+          Compare: fin-sig runs $5–7/mo but requires persistent storage for
+          accumulated filing data. Site Auditor is cheaper per feature because
+          there's nothing to store — only the audit you just ran.
+        </p>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ── OSS CTA ───────────────────────────────────────────── -->
+    <section>
+      <div class="container">
+        <div class="oss-block">
+          <h2>Free. Forever. Open Source.</h2>
+          <p>
+            Run it locally in 30 seconds. Self-host it for your team. Fork it.
+            Build on it. The API is open.
+          </p>
+          <div class="hero-actions">
+            <a href="/" class="btn btn-primary">→ Audit a Site Now</a>
+            <a
+              href="https://github.com/jenninexus/site-auditor-pro"
+              class="btn btn-secondary"
+              target="_blank"
+              rel="noopener"
+              >★ View on GitHub</a
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Footer ────────────────────────────────────────────── -->
+    <footer>
+      <div class="footer-links">
+        <a href="/">← Audit Dashboard</a>
+        <a href="/api">API Docs</a>
+        <a
+          href="https://github.com/jenninexus/site-auditor-pro"
+          target="_blank"
+          rel="noopener"
+          >GitHub</a
+        >
+        <a href="/api/health">Health</a>
+      </div>
+      <p class="copy">
+        Site Auditor v2.0 · Express server on <code>$SITE_AUDITOR_PORT</code> ·
+        MIT License
+      </p>
+    </footer>
+  </body>
+</html>
