@@ -1,6 +1,5 @@
 # Site Auditor
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)]()
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green)]()
 
@@ -15,7 +14,7 @@ Standalone Express server with an embedded glass-morphism dashboard. Analyzes 6 
 ```bash
 # Clone and start
 git clone https://github.com/jenninexus/site-auditor-pro.git
-cd site-auditor-pro
+cd site-auditor-pro   # repo rename to site-auditor pending
 npm install
 npm run dev
 

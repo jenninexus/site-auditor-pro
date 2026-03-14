@@ -15,7 +15,10 @@ export default tseslint.config(
       // HTTP fetch/scraping returns dynamic data; any is acceptable here
       "@typescript-eslint/no-explicit-any": "warn",
       // Allow _-prefixed parameters to mark intentionally unused args
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_" },
+      ],
     },
   },
   {

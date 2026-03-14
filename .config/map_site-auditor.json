@@ -1,17 +1,16 @@
 {
   "_meta": {
-    "description": "Site Auditor Pro — project identity and configuration map",
+    "description": "Site Auditor — project identity and configuration map",
     "version": "2.0.0",
     "updated": "2026-03-14",
     "location": "${SITE_AUDITOR_ROOT}\\.config\\map_site-auditor.json"
   },
 
   "project": {
-    "name": "site-auditor-pro",
-    "display": "Site Auditor Pro",
+    "name": "site-auditor",
+    "display": "Site Auditor",
     "description": "Website auditing platform — accessibility, SEO, security, and performance",
     "version": "2.0.0",
-    "license": "MIT",
     "github": "jenninexus/site-auditor-pro",
     "agent_id": "site-auditor",
     "stack": ["TypeScript", "Express 4", "Node.js 18+", "Vitest", "tsx"],

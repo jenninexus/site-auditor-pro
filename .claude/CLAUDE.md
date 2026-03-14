@@ -1,13 +1,13 @@
-# site-auditor-pro — Web Auditing Platform
+# site-auditor — Web Auditing Platform
 
 ## Project Identity
 
 - **What it is:** Accessibility, SEO, security and performance auditing tool for websites
-- **Stack:** TypeScript/Express (ESM), Node.js ≥ 18, nx `src/`, HTML dashboard + pitch page
+- **Stack:** TypeScript/Express (ESM), Node.js ≥ 18, `src/`, HTML dashboard + pitch page
 - **Port:** `$SITE_AUDITOR_PORT` (default 3847) — set via env var or `.env`
 - **Entry:** `src/server.ts` — run directly with `tsx` (no compile step for dev)
 - **Agent ID:** `site-auditor` — see `C:\pc-network\.claude\skills-registry.yaml → project_skills`
-- **GitHub:** `jenninexus/site-auditor-pro`
+- **GitHub:** `jenninexus/site-auditor-pro` *(repo rename to `site-auditor` pending)*
 
 ## Dev Commands
 
