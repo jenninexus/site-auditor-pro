@@ -1,0 +1,57 @@
+# DigitalOcean App Platform spec for site-auditor
+# Docs: https://docs.digitalocean.com/products/app-platform/reference/app-spec/
+#
+# Deploy:
+#   doctl apps create --spec .do/app.yaml
+#   doctl apps update <app-id> --spec .do/app.yaml
+#
+# ⚠️  Keep this on its own App Platform app — NOT the jenninexus.com droplet.
+#     site-auditor fetches external URLs per request (CPU burst, 15s+ timeouts).
+
+name: site-auditor
+
+services:
+  - name: web
+    github:
+      repo: jenninexus/site-auditor-pro
+      branch: main
+      deploy_on_push: true
+
+    # Build: compile TypeScript
+    build_command: npm ci && npm run build
+
+    # Run compiled output directly (no tsx overhead in production)
+    run_command: node dist/src/server.js
+
+    environment_slug: node-js
+
+    # Smallest instance — adequate for on-demand audits
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    instance_count: 1
+
+    http_port: 3847
+
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 5
+      period_seconds: 30
+      timeout_seconds: 5
+      failure_threshold: 3
+      success_threshold: 1
+
+    envs:
+      - key: NODE_ENV
+        value: production
+        scope: RUN_TIME
+
+      - key: SITE_AUDITOR_PORT
+        value: "3847"
+        scope: RUN_TIME
+
+      # Optional: restrict allowed hosts (comma-separated)
+      # - key: ALLOWED_ORIGINS
+      #   value: "https://jenninexus.com"
+      #   scope: RUN_TIME
+
+    routes:
+      - path: /
