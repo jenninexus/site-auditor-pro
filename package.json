@@ -2,6 +2,7 @@
   "name": "site-auditor",
   "version": "2.0.0",
   "description": "Audit any website for accessibility, SEO, security, and performance",
+  "license": "AGPL-3.0-or-later",
   "private": true,
   "type": "module",
   "scripts": {

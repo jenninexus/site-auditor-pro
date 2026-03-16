@@ -7,7 +7,7 @@
 - **Port:** `$SITE_AUDITOR_PORT` (default 3847) — set via env var or `.env`
 - **Entry:** `src/server.ts` — run directly with `tsx` (no compile step for dev)
 - **Agent ID:** `site-auditor` — see `C:\pc-network\.claude\skills-registry.yaml → project_skills`
-- **GitHub:** `jenninexus/site-auditor-pro`
+- **GitHub:** `jenninexus/site-auditor`
 
 ## Dev Commands
 

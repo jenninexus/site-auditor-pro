@@ -11,7 +11,7 @@
     "display": "Site Auditor",
     "description": "Website auditing platform — accessibility, SEO, security, and performance",
     "version": "2.0.0",
-    "github": "jenninexus/site-auditor-pro",
+    "github": "jenninexus/site-auditor",
     "agent_id": "site-auditor",
     "stack": ["TypeScript", "Express 4", "Node.js 18+", "Vitest", "tsx"],
     "owner": "Jenni",
